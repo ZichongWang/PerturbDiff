@@ -464,19 +464,19 @@ lightning.logger._target_=pytorch_lightning.loggers.logger.DummyLogger
 
 ### Scenario Index
 1. From scratch training
-    - 1.1. From Scratch on PBMC
-    - 1.2. From Scratch on Tahoe100M
-    - 1.3. From Scratch on Replogle
-
+    - [1.1) From Scratch on PBMC](#11-from-scratch-on-pbmc)
+    - [1.2) From Scratch on Tahoe100M](#12-from-scratch-on-tahoe100m)
+    - [1.3) From Scratch on Replogle](#13-from-scratch-on-replogle)
+    
 2. Sampling
-    - 2.1. Sampling on PBMC from checkpoint (as an example)
+    - [2.1) Sampling on PBMC (from checkpoint; PBMC as an example)](#21-sampling-on-pbmc-from-checkpoint-pbmc-as-an-example)
 
-3. Pretraining (Tahoe100M + PBMC + Replogle + CellxGene)
+3. [Pretraining](#3-pretraining)
 
 4. Finetuning
-    - 4.1. Finetuning on PBMC
-    - 4.2. Finetuning on Tahoe100M
-    - 4.3. Finetuning on Replogle
+    - [4.1) Finetuning on PBMC](#41-finetuning-on-pbmc)
+    - [4.2) Finetuning on Tahoe100M](#42-finetuning-on-tahoe100m)
+    - [4.3) Finetuning on Replogle](#43-finetuning-on-replogle)
 
 
 #### 1.1) From Scratch on PBMC
