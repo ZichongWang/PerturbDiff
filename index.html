@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
+    html, body { min-height: 100%; overflow: auto; }
     :root {
       --bg: #f3efe6;
       --bg2: #ece3cf;
@@ -42,7 +42,8 @@
         linear-gradient(145deg, var(--bg), var(--bg2));
     }
     .app {
-      height: 100dvh;
+      min-height: 100dvh;
+      height: auto;
       display: grid;
       grid-template-rows: auto auto 1fr;
       gap: var(--gap);
@@ -316,8 +317,7 @@
       .splitter { display: none; }
       .h-splitter { display: none; }
       .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      html, body { overflow: auto; }
-      .app { height: auto; min-height: 100dvh; }
+      .app { min-height: 100dvh; }
       .panel { min-height: 280px; }
     }
 

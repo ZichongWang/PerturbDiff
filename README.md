@@ -10,10 +10,9 @@
 
 PyTorch implementation of [PerturbDiff], a functional diffusion-based framework for single-cell perturbation modeling. Code authored by [Xinyu Yuan], [Xixian Liu], and [Yashi Zhang]; Code released by [Xinyu Yuan] and [Codex]; project supervised by [Jian Tang].
 
-## Project Page
+See our official [project page](https://katarinayuan.github.io/PerturbDiff-ProjectPage/) and our [interactive code guidance page](https://deepgraphlearning.github.io/PerturbDiff/).
 
-For a concise visual introduction to the method, results, and resources, visit the official project page:
-[https://katarinayuan.github.io/PerturbDiff-ProjectPage/](https://katarinayuan.github.io/PerturbDiff-ProjectPage/)
+
 
 [Xinyu Yuan]: https://github.com/KatarinaYuan
 [Xixian Liu]: https://github.com/ZeroKnighting
@@ -75,46 +74,6 @@ This repository contains the refactored runtime used for large-scale pretraining
 - 2026-03-05: Release all data and ckpts on HuggingFace.
 
 ## File Structure
-
-```text
-PerturbDiff-Refactor/
-├── README.md
-├── src/
-│   ├── apps/
-│   │   ├── run/
-│   │   │   ├── rawdata_diffusion_training.py
-│   │   │   └── rawdata_diffusion_sampling.py
-│   │   ├── training/
-│   │   └── sampling/
-│   ├── models/
-│   │   ├── diffusion/
-│   │   ├── cross_dit/
-│   │   └── lightning/
-│   ├── data/
-│   │   ├── data_module/
-│   │   └── dataset/
-│   ├── common/
-│   └── tools/
-├── configs/
-│   ├── rawdata_diffusion_training.yaml
-│   ├── rawdata_diffusion_sampling.yaml
-│   ├── data/
-│   │   ├── pbmc_finetune.yaml
-│   │   ├── tahoe100m_finetune.yaml
-│   │   ├── replogle_finetune.yaml
-│   │   ├── tahoe100m_pbmc_replogle_pretrain_cellxgene.yaml
-│   │   ├── perturb_data/
-│   │   └── rna_data/
-│   ├── model/
-│   ├── trainer/
-│   ├── lightning/
-│   ├── optimization/
-│   ├── path/
-│   └── cov_encoding/
-└── src/
-```
-
-### Detailed `src/` Module Map
 
 ```text
 src/
