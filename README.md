@@ -670,6 +670,6 @@ $NO_WANDB
 @article{perturbdiff,
   title   = {PerturbDiff: Functional Diffusion for Single-Cell Perturbation Modeling},
   author  = {Xinyu Yuan, Xixian Liu, Yashi Zhang, Zuobai Zhang, Hongyu Guo, and Jian Tang},
-  year    = {2025},
+  year    = {2026},
 }
 ```
