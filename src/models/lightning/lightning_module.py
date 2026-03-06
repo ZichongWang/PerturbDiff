@@ -1,7 +1,6 @@
 """Lightning training module split from lightning_module (logic-preserving)."""
 
 import gc
-import os
 import pickle
 import sys
 import time
@@ -231,14 +230,7 @@ class PlModel(pl.LightningModule):
                 "ds_name": batch["ds_name"],
                 }
 
-        align_rng = os.getenv("PDIFF_FORCE_ALIGNED_RNG", "0") == "1"
-        if align_rng:
-            step_seed = int(os.getenv("PDIFF_SEED_BASE", "12345")) + int(self.global_step)
-            np.random.seed(step_seed)
-            torch.manual_seed(step_seed)
-
         t, weights = self.schedule_sampler.sample(pert_emb.shape[0], device)
-        noise = torch.randn_like(pert_emb, dtype=torch.float64) if align_rng else None
 
         losses = self.diffusion.training_losses(
             self.model, 
@@ -246,7 +238,7 @@ class PlModel(pl.LightningModule):
             t, 
             self_condition=cond, 
             model_kwargs=None, 
-            noise=noise,
+            noise=None,
             p_drop_cond=self.model_cfg.p_drop_cond,
             MMD_loss_fn=self.loss_fn,
         )

@@ -1,8 +1,6 @@
 """Module `data/dataset_core.py`."""
 import ctypes
 import ctypes.util
-import hashlib
-import os
 from logging import Logger
 from typing import Any, Dict, List, Tuple
 
@@ -123,17 +121,8 @@ def collate_fn(dataset, batch):
 def mapping_cells(dataset, ds_name, local_idx):
     """Execute `mapping_cells` and return values used by downstream logic."""
     assert dataset.data_args.mapping_strategy == "random"
-    deterministic_mapping = os.getenv("PDIFF_DETERMINISTIC_MAPPING", "0") == "1"
-    if deterministic_mapping:
-        base_seed = int(os.getenv("PDIFF_DETERMINISTIC_MAPPING_SEED", "20260304"))
-        key = f"{base_seed}|{ds_name}|{int(local_idx)}"
-        digest = hashlib.blake2b(key.encode("utf-8"), digest_size=8).digest()
-        rng = np.random.default_rng(int.from_bytes(digest, "little", signed=False))
-        randint = lambda high: int(rng.integers(0, high))
-        choice = lambda arr: arr[int(rng.integers(0, len(arr)))]
-    else:
-        randint = lambda high: int(np.random.randint(0, high, size=(1))[0])
-        choice = lambda arr: np.random.choice(arr, 1)[0]
+    randint = lambda high: int(np.random.randint(0, high, size=(1))[0])
+    choice = lambda arr: np.random.choice(arr, 1)[0]
 
     cache = dataset.meta_cache._cache[dataset.dataset_path_map[ds_name]]
 

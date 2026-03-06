@@ -1,8 +1,5 @@
 """Training/loss methods for GaussianDiffusion."""
 
-import json
-import os
-
 import torch as th
 from geomloss import SamplesLoss
 
@@ -42,23 +39,6 @@ def _build_training_target(model_mean_type, x_start, noise):
         ModelMeanType.START_X: x_start,
         ModelMeanType.EPSILON: noise,
     }[model_mean_type]
-
-
-
-def _safe_stats(x):
-    """Execute `_safe_stats` and return values used by downstream logic."""
-    if x is None:
-        return None
-    if not isinstance(x, th.Tensor):
-        return str(type(x))
-    y = x.detach().float()
-    return {
-        "shape": list(y.shape),
-        "mean": float(y.mean().item()),
-        "std": float(y.std(unbiased=False).item()),
-        "norm": float(y.norm().item()),
-    }
-
 
 class GaussianDiffusionTrainingMixin:
     """Gaussiandiffusiontrainingmixin implementation used by the PerturbDiff pipeline."""
@@ -209,15 +189,9 @@ class GaussianDiffusionTrainingMixin:
 
         x_0 = th.zeros_like(x_t)
         control_0 = th.zeros_like(control_input_t)
-        selfcond_used = False
-        force_selfcond = os.getenv("PDIFF_FORCE_SELFCOND")
-        if force_selfcond is None:
-            use_selfcond_now = bool((th.rand(1) > 0.5).item())
-        else:
-            use_selfcond_now = force_selfcond.strip() in {"1", "true", "True"}
+        use_selfcond_now = bool((th.rand(1) > 0.5).item())
 
         if use_selfcond_now:
-            selfcond_used = True
             with th.no_grad():
                 out = self.get_model_output(
                     model=model,
@@ -230,7 +204,7 @@ class GaussianDiffusionTrainingMixin:
             x_0 = out["x"]
             control_0 = th.zeros_like(out["x_control"])
 
-        terms, model_output = self.diffusion_loss(
+        terms = self.diffusion_loss(
             model=model,
             x_start=x_start,
             x_t=x_t,
@@ -242,35 +216,10 @@ class GaussianDiffusionTrainingMixin:
             x_0=x_0,
             control_0=control_0,
             MMD_loss_fn=MMD_loss_fn,
-            return_model_output=True,
         )
 
         if model.model_cfg.no_mse_loss:
             terms["mse1"] = th.zeros_like(terms["mse1"])
-        trace_path = os.getenv("PDIFF_TRACE_PATH")
-        if trace_path and not getattr(self, "_pdiff_trace_dumped", False):
-            trace = {
-                "t_head": [int(v) for v in t.detach().cpu().view(-1)[:8]],
-                "x_start": _safe_stats(x_start),
-                "control_input_start": _safe_stats(control_input_start),
-                "noise": _safe_stats(noise),
-                "x_t": _safe_stats(x_t),
-                "control_input_t": _safe_stats(control_input_t),
-                "batch_emb_is_none": self_condition.get("batch_emb") is None,
-                "cont_emb_is_none": self_condition.get("cont_emb") is None,
-                "model_output_x": _safe_stats(model_output.get("x")),
-                "model_output_x_control": _safe_stats(model_output.get("x_control")),
-                "selfcond_used": bool(selfcond_used),
-                "x_0": _safe_stats(x_0),
-                "control_0": _safe_stats(control_0),
-                "terms_loss1_mean": float(terms["loss1"].detach().float().mean().item()),
-                "terms_mse1_mean": float(terms["mse1"].detach().float().mean().item()),
-                "terms_mmd1_mean": float(terms["mmd1"].detach().float().mean().item()) if "mmd1" in terms else None,
-            }
-            os.makedirs(os.path.dirname(trace_path), exist_ok=True)
-            with open(trace_path, "w", encoding="utf-8") as fout:
-                json.dump(trace, fout, indent=2)
-            self._pdiff_trace_dumped = True
         return terms
 
 
