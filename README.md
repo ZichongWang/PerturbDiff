@@ -348,7 +348,7 @@ Copy this block once per shell session.
 # -----------------------------
 # Shared training runtime
 # -----------------------------
-PRETRAIN_CKPT_PATH="${ROOT_PATH}perturb_ckpt/2blr7uc0_last.ckpt"
+PRETRAIN_CKPT_PATH="${ROOT_PATH}perturb_ckpt/your_ckpt.ckpt"
 
 COMMON_TRAIN_RUNTIME="
 trainer.devices=[0,1,2,3]
