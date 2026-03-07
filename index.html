@@ -45,7 +45,8 @@
       min-height: 100dvh;
       height: auto;
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto auto auto;
+      align-content: start;
       gap: var(--gap);
       padding: clamp(8px, 1vw, 16px);
     }
@@ -75,18 +76,16 @@
     .toolbar {
       padding: clamp(7px, .9vw, 12px);
       display: grid;
-      grid-template-columns: 1fr auto auto;
+      grid-template-columns: 1fr auto;
       gap: var(--gap);
       align-items: center;
     }
-    .search {
-      width: 100%;
+    .flow-inline {
+      min-width: 0;
       border: 1px solid var(--line);
       border-radius: 10px;
-      padding: .55rem .7rem;
-      font: inherit;
-      font-size: var(--body-size);
-      background: rgba(255,255,255,.8);
+      background: rgba(255,255,255,.68);
+      padding: .35rem;
     }
     .btns { display: flex; gap: .4rem; }
     button {
@@ -104,6 +103,7 @@
 
     .main {
       min-height: 0;
+      height: clamp(420px, 52vh, 560px);
       display: grid;
       grid-template-columns: var(--c1) var(--splitter) var(--c2) var(--splitter) var(--c3);
       gap: 0;
@@ -139,6 +139,7 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
+      height: 100%;
       overflow: hidden;
     }
     .panel h2 { margin: 0 0 .45rem; font-size: var(--h2-size); }
@@ -184,8 +185,8 @@
       border: 1px solid var(--line);
       border-radius: 12px;
       background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(246,251,250,.72));
-      min-height: 240px;
-      height: clamp(260px, 34vh, 420px);
+      min-height: 180px;
+      height: clamp(190px, 24vh, 280px);
       overflow: hidden;
       position: relative;
       flex: 0 0 auto;
@@ -212,59 +213,32 @@
     }
     .edge { fill: none; stroke: rgba(23,51,59,.42); stroke-width: 1.2; marker-end: url(#arrow); }
 
-    .flow-box {
-      border: 1px solid var(--line);
-      border-radius: 11px;
-      background: rgba(255,255,255,.76);
-      padding: .58rem;
-      min-height: 205px;
-      overflow: auto;
-      flex: 1 1 auto;
-    }
-    .h-splitter {
-      align-self: stretch;
-      height: var(--vsplitter);
-      cursor: row-resize;
-      position: relative;
-      touch-action: none;
-    }
-    .h-splitter::before {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 8px;
-      transform: translateY(-50%);
-      height: 2px;
-      width: calc(100% - 16px);
-      background: rgba(23, 51, 59, 0.2);
-      border-radius: 999px;
-      transition: background 120ms ease;
-    }
-    .h-splitter:hover::before,
-    .h-splitter.dragging::before {
-      background: rgba(15, 118, 110, 0.58);
-    }
     .steps {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: .42rem;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: .4rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: .06rem;
+      scrollbar-width: thin;
     }
     .step {
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: .42rem .46rem;
-      min-height: 94px;
-      font-size: clamp(.8rem, 1vw, 1rem);
+      padding: .34rem .44rem;
+      min-height: 0;
+      font-size: clamp(.72rem, .9vw, .88rem);
       background: rgba(255,255,255,.88);
       display: flex;
       flex-direction: column;
-      gap: .24rem;
+      gap: .16rem;
       justify-content: center;
       min-width: 0;
+      flex: 0 0 clamp(170px, 16vw, 230px);
       overflow-wrap: anywhere;
       word-break: break-word;
     }
-    .step strong { font-size: clamp(.98rem, 1.2vw, 1.2rem); }
+    .step strong { font-size: clamp(.86rem, 1.02vw, 1.06rem); }
     .step.active { border-color: rgba(217,119,6,.6); background: rgba(217,119,6,.14); }
 
     .detail-top {
@@ -317,10 +291,8 @@
     }
     @media (max-width: 860px) {
       .toolbar { grid-template-columns: 1fr; }
-      .main { grid-template-columns: 1fr; }
+      .main { grid-template-columns: 1fr; height: auto; }
       .splitter { display: none; }
-      .h-splitter { display: none; }
-      .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .app { min-height: 100dvh; }
       .panel { min-height: 280px; }
     }
@@ -337,18 +309,15 @@
         <div class="title">PerturbDiff Interactive Explorer</div>
         <div class="sub">A clickable code map for `configs` + `src`</div>
       </div>
-      <div class="badge">Keyboard: `f` focus search, `[`/`]` flow step</div>
     </header>
 
     <section class="toolbar">
-      <input id="search" class="search" placeholder="Search file names / keywords (e.g., diffusion, sampling, pbmc, hydra)" />
+      <div class="flow-inline">
+        <div id="steps" class="steps"></div>
+      </div>
       <div class="btns">
         <button id="flow-training" class="active">Training Flow</button>
         <button id="flow-sampling">Sampling Flow</button>
-      </div>
-      <div class="btns">
-        <button id="step-prev">Prev Step</button>
-        <button id="step-next">Next Step</button>
       </div>
     </section>
 
@@ -367,11 +336,6 @@
         </div>
         <div class="svg-wrap">
           <svg id="arch" viewBox="0 0 760 290" role="img" aria-label="Architecture graph"></svg>
-        </div>
-        <div id="splitter-center" class="h-splitter" role="separator" aria-label="Resize graph and flow panels"></div>
-        <div class="flow-box">
-          <div class="hint" id="flow-caption">Training pipeline step-by-step</div>
-          <div id="steps" class="steps"></div>
         </div>
       </section>
       <div id="splitter-right" class="splitter" role="separator" aria-label="Resize center and right panels"></div>
@@ -573,17 +537,11 @@
     const detailCode = document.getElementById("detail-code");
     const detailTags = document.getElementById("detail-tags");
     const detailFootnote = document.getElementById("detail-footnote");
-    const search = document.getElementById("search");
     const stepsEl = document.getElementById("steps");
-    const flowCaption = document.getElementById("flow-caption");
     const archEl = document.getElementById("arch");
     const mainEl = document.querySelector(".main");
     const splitterLeft = document.getElementById("splitter-left");
     const splitterRight = document.getElementById("splitter-right");
-    const centerTopEl = document.querySelector(".center-top");
-    const graphWrapEl = document.querySelector(".svg-wrap");
-    const flowBoxEl = document.querySelector(".flow-box");
-    const splitterCenter = document.getElementById("splitter-center");
 
     function byPath(path) {
       return FILES.find(f => f.path === path);
@@ -694,56 +652,6 @@
       initColumnsFromLayout();
     }
 
-    function setupCenterResizer() {
-      if (!centerTopEl || !graphWrapEl || !flowBoxEl || !splitterCenter) return;
-      const MIN_GRAPH = 170;
-      const MIN_FLOW = 150;
-
-      function isMobile() {
-        return window.matchMedia("(max-width: 860px)").matches;
-      }
-
-      let drag = null;
-
-      function onMove(e) {
-        if (!drag || isMobile()) return;
-        const dy = e.clientY - drag.startY;
-        let graphH = Math.max(MIN_GRAPH, Math.min(drag.startGraph + dy, drag.total - MIN_FLOW));
-        let flowH = drag.total - graphH;
-        if (flowH < MIN_FLOW) {
-          flowH = MIN_FLOW;
-          graphH = drag.total - flowH;
-        }
-        graphWrapEl.style.flex = `0 0 ${graphH}px`;
-        flowBoxEl.style.flex = `0 0 ${flowH}px`;
-      }
-
-      function stop() {
-        if (!drag) return;
-        splitterCenter.classList.remove("dragging");
-        drag = null;
-        document.body.style.cursor = "";
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", stop);
-      }
-
-      splitterCenter.addEventListener("pointerdown", (e) => {
-        if (isMobile()) return;
-        e.preventDefault();
-        const g = graphWrapEl.getBoundingClientRect().height;
-        const f = flowBoxEl.getBoundingClientRect().height;
-        drag = {
-          startY: e.clientY,
-          startGraph: g,
-          total: g + f,
-        };
-        splitterCenter.classList.add("dragging");
-        document.body.style.cursor = "row-resize";
-        window.addEventListener("pointermove", onMove);
-        window.addEventListener("pointerup", stop);
-      });
-    }
-
     function renderTree(filter = "") {
       const q = filter.trim().toLowerCase();
       const grouped = {};
@@ -826,7 +734,6 @@
 
     function renderFlow() {
       const flow = FLOWS[state.flowType];
-      flowCaption.textContent = `${state.flowType === "training" ? "Training" : "Sampling"} pipeline step-by-step`;
       stepsEl.innerHTML = "";
       flow.forEach((s, idx) => {
         const el = document.createElement("div");
@@ -853,7 +760,7 @@
       const target = hintMap[step.title];
       if (target && byPath(target)) {
         state.activePath = target;
-        renderTree(search.value);
+        renderTree();
         renderDetail();
       }
     }
@@ -1025,13 +932,11 @@
     }
 
     function renderAll() {
-      renderTree(search.value);
+      renderTree();
       renderDetail();
       renderFlow();
       renderGraph();
     }
-
-    search.addEventListener("input", () => renderTree(search.value));
 
     document.getElementById("flow-training").addEventListener("click", () => {
       state.flowType = "training";
@@ -1051,18 +956,6 @@
       focusStepHint();
     });
 
-    document.getElementById("step-prev").addEventListener("click", () => {
-      state.flowStep = Math.max(0, state.flowStep - 1);
-      renderFlow();
-      focusStepHint();
-    });
-    document.getElementById("step-next").addEventListener("click", () => {
-      const max = FLOWS[state.flowType].length - 1;
-      state.flowStep = Math.min(max, state.flowStep + 1);
-      renderFlow();
-      focusStepHint();
-    });
-
     document.getElementById("copy-path").addEventListener("click", async () => {
       const path = state.activePath || "";
       try {
@@ -1077,10 +970,6 @@
     });
 
     window.addEventListener("keydown", (e) => {
-      if (e.key === "f") {
-        e.preventDefault();
-        search.focus();
-      }
       if (e.key === "[") {
         state.flowStep = Math.max(0, state.flowStep - 1);
         renderFlow();
@@ -1095,7 +984,6 @@
     });
 
     setupColumnResizers();
-    setupCenterResizer();
     renderAll();
     focusStepHint();
   </script>
