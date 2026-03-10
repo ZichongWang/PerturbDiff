@@ -21,7 +21,7 @@ See our official [project page](https://katarinayuan.github.io/PerturbDiff-Proje
 [Codex]: https://openai.com/zh-Hans-CN/index/introducing-codex/
 [PerturbDiff]: https://arxiv.org/html/2602.19685v1
 
-## Overview
+# Overview
 
 Building **virtual cells** that can accurately simulate perturbation responses is a core challenge in systems biology. In single-cell sequencing, measurements are destructive, so the same cell cannot be observed both before and after perturbation. As a result, perturbation prediction must map between unpaired control and perturbed populations.
 
@@ -40,7 +40,7 @@ This repository contains the refactored runtime used for large-scale pretraining
 - `src/`: functional code modules and executable entrypoints.
 - `configs/`: Hydra configuration system for training and sampling.
 
-## Table of Contents
+# Table of Contents
 
 - [Overview](#overview)
 - [Feature](#feature)
@@ -69,7 +69,7 @@ This repository contains the refactored runtime used for large-scale pretraining
   - [Notes](#notes)
 - [Citation](#citation)
 
-## Feature
+# Feature
 
 - Functional refactor with clear module boundaries:
   - `src/apps`: run entrypoints for training/sampling
@@ -82,13 +82,13 @@ This repository contains the refactored runtime used for large-scale pretraining
   - pretraining (multi-source) and then finetuning (PBMC / Tahoe100M / Replogle)
   - conditional sampling from checkpoints
 
-## Updates
+# Updates
 
 - 2026-03-06: Releease all codes.
 - 2026-03-05: Release all data and ckpts on HuggingFace.
 - 2026-02-23: Preprint released on Arxiv.
 
-## File Structure
+# File Structure
 
 ```text
 src/
@@ -143,9 +143,9 @@ src/
     └── paths.py                              # Path management
 ```
 
-## Installation
+# Installation
 
-### Option A: Conda/Mamba environment for `src` (recommended on cluster)
+## Option A: Conda/Mamba environment for `src` (recommended on cluster)
 
 ```bash
 # from login node
@@ -167,7 +167,7 @@ pip install transformers timm geomloss
 pip install wandb
 ```
 
-### Option B: venv
+## Option B: venv
 
 ```bash
 python -m venv .venv
@@ -186,7 +186,7 @@ Sanity check:
 python -c "import hydra,pytorch_lightning,torch,numpy,pandas,anndata,scanpy,h5py,yaml,sklearn,transformers,timm,geomloss; print('env ok')"
 ```
 
-## General Configuration
+# General Configuration
 
 Top-level Hydra configs:
 
@@ -214,7 +214,7 @@ python src/apps/run/rawdata_diffusion_training.py \
   optimization.micro_batch_size=32
 ```
 
-## Download
+# Download
 
 Use `huggingface_hub` CLI for both datasets and released checkpoints.
 
@@ -222,7 +222,7 @@ Use `huggingface_hub` CLI for both datasets and released checkpoints.
 pip install -U "huggingface_hub[cli]"
 ```
 
-### Dataset
+## Dataset
 
 Primary dataset source: [katarinayuan/PerturbDiff_data](https://huggingface.co/datasets/katarinayuan/PerturbDiff_data)
 
@@ -271,7 +271,7 @@ perturb_data/
 ```
 
 
-### Checkpoint
+## Checkpoint
 
 Released checkpoints can be downloaded from:
   - [katarinayuan/PerturbDiff_release_ckpt](https://huggingface.co/katarinayuan/PerturbDiff_release_ckpt/tree/main).
@@ -293,7 +293,7 @@ hf download katarinayuan/PerturbDiff_release_ckpt \
   --local-dir ./checkpoints/PerturbDiff_release_ckpt
 ```
 
-## Setup
+# Setup
 
 1. Clone repo and `cd` to project root.
 2. Download dataset files to cluster storage.
@@ -327,7 +327,7 @@ hf download katarinayuan/PerturbDiff_release_ckpt \
   - Change output naming:
     - update `run_name=...`
 
-### Quick Start
+## Quick Start
 
 ```bash
 # From repo root
@@ -336,12 +336,12 @@ cd PerturbDiff-Refactor
 # (Optional) activate env
 ```
 
-### Entrypoints
+## Entrypoints
 
 - Training: `python ./src/apps/run/rawdata_diffusion_training.py`
 - Sampling: `python ./src/apps/run/rawdata_diffusion_sampling.py`
 
-### Shared CLI Blocks
+## Shared CLI Blocks
 
 Copy this block once per shell session.
 
@@ -463,7 +463,7 @@ lightning.logger._target_=pytorch_lightning.loggers.logger.DummyLogger
 "
 ```
 
-### Scenario Index
+## Scenario Index
 1. From scratch training
     - [1.1) From Scratch on PBMC](#11-from-scratch-on-pbmc)
     - [1.2) From Scratch on Tahoe100M](#12-from-scratch-on-tahoe100m)
@@ -480,7 +480,7 @@ lightning.logger._target_=pytorch_lightning.loggers.logger.DummyLogger
     - [4.3) Finetuning on Replogle](#43-finetuning-on-replogle)
 
 
-#### 1.1) From Scratch on PBMC
+### 1.1) From Scratch on PBMC
 
 ```bash
 SCRATCH_PBMC_EXTRA="
@@ -502,7 +502,7 @@ $SCRATCH_PBMC_EXTRA \
 $NO_WANDB
 ```
 
-#### 1.2) From Scratch on Tahoe100M
+### 1.2) From Scratch on Tahoe100M
 
 ```bash
 SCRATCH_TAHOE_EXTRA="
@@ -524,7 +524,7 @@ $SCRATCH_TAHOE_EXTRA \
 $NO_WANDB
 ```
 
-#### 1.3) From Scratch on Replogle
+### 1.3) From Scratch on Replogle
 
 ```bash
 SCRATCH_REPLOGLE_EXTRA="
@@ -546,7 +546,7 @@ $SCRATCH_REPLOGLE_EXTRA \
 $NO_WANDB
 ```
 
-#### 2.1) Sampling on PBMC (from checkpoint; PBMC as an example)
+### 2.1) Sampling on PBMC (from checkpoint; PBMC as an example)
 
 ```bash
 CKPT_PATH=${ROOT_PATH}perturb_ckpt/your_ckpt.ckpt
@@ -568,7 +568,7 @@ $NO_WANDB
 ```
 
 
-#### 3) Pretraining
+### 3) Pretraining
 
 ```bash
 PRETRAIN_EXTRA="
@@ -596,7 +596,7 @@ $PRETRAIN_EXTRA \
 $NO_WANDB
 ```
 
-#### 4.1) Finetuning on PBMC
+### 4.1) Finetuning on PBMC
 
 ```bash
 FINETUNE_PBMC_EXTRA="
@@ -616,7 +616,7 @@ $FINETUNE_COMMON \
 $NO_WANDB
 ```
 
-#### 4.2) Finetuning on Tahoe100M
+### 4.2) Finetuning on Tahoe100M
 
 ```bash
 FINETUNE_TAHOE_EXTRA="
@@ -638,7 +638,7 @@ $FINETUNE_COMMON \
 $NO_WANDB
 ```
 
-#### 4.3) Finetuning on Replogle
+### 4.3) Finetuning on Replogle
 
 ```bash
 FINETUNE_REPLOGLE_EXTRA="
@@ -661,16 +661,17 @@ $FINETUNE_REPLOGLE_EXTRA \
 $FINETUNE_COMMON \
 $NO_WANDB
 ```
-### Notes
+## Notes
 
 - All commands use Hydra CLI overrides; order matters when repeated keys are present.
 
-## Citation
+# Citation
 
 ```bibtex
-@article{perturbdiff,
-  title   = {PerturbDiff: Functional Diffusion for Single-Cell Perturbation Modeling},
-  author  = {Xinyu Yuan, Xixian Liu, Yashi Zhang, Zuobai Zhang, Hongyu Guo, and Jian Tang},
-  year    = {2026},
+@article{yuan2026perturbdiff,
+  title={PerturbDiff: Functional Diffusion for Single-Cell Perturbation Modeling},
+  author={Yuan, Xinyu and Liu, Xixian and Zhang, Ya Shi and Zhang, Zuobai and Guo, Hongyu and Tang, Jian},
+  journal={arXiv preprint arXiv:2602.19685},
+  year={2026}
 }
 ```
