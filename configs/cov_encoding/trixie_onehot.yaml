@@ -29,10 +29,10 @@ replace_pert_dict: false
 gather_strategy: concat
 
 # External embedding resources
-gene_embedding_path: ["${..path.tmp_dir}/gene_names/pbmc_highly_variavle_gene_emb_dict_emb_dict.pkl",
-                      "${..path.tmp_dir}/gene_names/replogle_gene_emb_dict_perturbation_emb_dict.pkl",
-                      "${..path.tmp_dir}/gene_names/replogle_highly_variavle_gene_emb_dict_emb_dict.pkl",
-                      "${..path.tmp_dir}/gene_names/tahoe100m_highly_variavle_gene_emb_dict_emb_dict.pkl"]
+gene_embedding_path: ["${...path.tmp_dir}/gene_names/pbmc_highly_variavle_gene_emb_dict_emb_dict.pkl",
+                      "${...path.tmp_dir}/gene_names/replogle_gene_emb_dict_perturbation_emb_dict.pkl",
+                      "${...path.tmp_dir}/gene_names/replogle_highly_variavle_gene_emb_dict_emb_dict.pkl",
+                      "${...path.tmp_dir}/gene_names/tahoe100m_highly_variavle_gene_emb_dict_emb_dict.pkl"]
 pert_embedding_path: ${..path.tmp_dir}/meta_data/idx_to_pertemb.pkl
 celltype_embedding_path: ${..path.tmp_dir}/meta_data/new_all_emb.pkl
 drug_embedding_path: ${..path.tmp_dir}/meta_data/drug_embed_chemberta_cls_dict.pkl

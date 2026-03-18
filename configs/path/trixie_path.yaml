@@ -2,12 +2,12 @@
 
 # Logging / checkpoint roots
 wandb:
-  logging_dir: "/path/to/perturb_ckpt/perturbflow_wandb"
-diffusion:
-  save_dir: "/path/to/perturb_ckpt/perturbflow_output/rawdata_diffusion_model"
+  logging_dir: "/home/zichong/fork/PerturbDiff/checkpoints/wandb"
 
-# Shared data root
-tmp_dir: "/path/to/perturb_data"
+diffusion:
+  save_dir: "/home/zichong/fork/PerturbDiff/checkpoints"
+
+tmp_dir: "/home/zichong/fork/PerturbDiff/data/perturb_data"
 
 # Dataset directories
 tahoe100m_dir: "${.tmp_dir}/finetune_data/tahoe100m_full_selected_processed_new/"

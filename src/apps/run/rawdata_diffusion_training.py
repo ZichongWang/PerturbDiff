@@ -6,7 +6,9 @@ import logging
 import hydra
 import omegaconf
 import pytorch_lightning as pl
+import torch
 
+torch.set_float32_matmul_precision("high")
 # local imports
 exc_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 sys.path.append(exc_dir)
