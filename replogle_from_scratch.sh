@@ -25,7 +25,7 @@ data.embed_key=X_hvg
 COMMON_REPLOGLE_TRAIN="
 optimization.micro_batch_size=128
 data.use_cell_set=32
-optimization.optimizer.lr=0.002
+optimization.optimizer.lr=0.0001
 cov_encoding.replogle_gene_encoding=genept
 "
 
@@ -67,7 +67,7 @@ lightning.callbacks.checkpoint.every_n_train_steps=10000
 run_name=from_scratch_replogle
 optimization.micro_batch_size=128
 lightning.logger.project=diffusion_pertub
-lightning.logger.name=from_scratch_replogle
+lightning.logger.name=from_scratch_replogle_low_lr
 "
 
 CUDA_VISIBLE_DEVICES=0 python ./src/apps/run/rawdata_diffusion_training.py \
