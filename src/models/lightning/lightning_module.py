@@ -222,7 +222,7 @@ class PlModel(pl.LightningModule):
         #batch["gene_emb"] = torch.stack([self.gene_embedding.get(id, torch.zeros(5120)) for id in batch["col_genes"]])
         #batch["gene_emb"] = batch["gene_emb"].expand(pert_emb.shape[0], -1, -1).to(device)
 
-        cond = {"batch_emb": batch["batch_emb"],
+        cond = {"batch_emb": batch["batch_emb"], # cov: ct, pert, batch
                 "cont_emb": batch["cont_emb"],
                 "gene_emb": gene_emb,
                 "cov_celltype": batch["cov_celltype"],

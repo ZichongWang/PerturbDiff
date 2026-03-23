@@ -131,7 +131,7 @@ def register_mapping_indices(dataset):
         else:
             # RNA-seq
             arr = np.array([], dtype=np.int64)
-        if len(arr) > 0:
+        if len(arr) > 0: # Find control cells with certain celltype and batch
             gp_indices, gp_cells = group_by_two_keys(dataset, arr, cache, key1_name="cell_type", key2_name="batch")
         else:
             gp_indices, gp_cells = {}, {}

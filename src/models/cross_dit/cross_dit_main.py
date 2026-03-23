@@ -125,7 +125,7 @@ class Cross_DiT(nn.Module):
                 for layer_id in range(model_cfg.dit_depth)
             ]
         )
-        self.final_layer = FinalLayer(self.hidden_size, output_size=self.output_size)
+        self.final_layer = FinalLayer(self.hidden_size, output_size=self.output_size) # map from 512 dim to 2000 dim
         self.control_final_layer = FinalLayer(self.hidden_size, output_size=self.output_size)
 
     def initialize_weights(self):

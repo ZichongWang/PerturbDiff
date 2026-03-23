@@ -117,7 +117,14 @@ def setup_loggings(cfg):
     logger.setLevel(logging.INFO)
 
     logger.info("Configuration args")
-    logger.info(cfg)
+    # logger.info(cfg)
+    logger.info(
+            "run=%s data=%s devices=%s",
+            cfg.run_name,
+            cfg.data.data_name,
+            cfg.trainer.devices,
+        )
+
 
     # compute
     computed_total_batch_size = (

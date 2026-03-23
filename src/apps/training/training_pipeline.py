@@ -24,7 +24,7 @@ def run_pipeline(trainer, model, datamodule, cfg, logger):
         logger.info("Finished saving final model")
         if torch.distributed.is_initialized():
             torch.distributed.barrier()
-        trainer.validate(model=model, datamodule=datamodule, ckpt_path="best")
+        trainer.validate(model=model, datamodule=datamodule, ckpt_path=None)
     else:
         logger.info("*********** start validation ***********\n\n")
         trainer.validate(
