@@ -13,6 +13,12 @@ from src.data.dataset.dataset_core import H5adSentenceDataset
 from src.data.metadata_cache import GlobalH5MetadataCache
 
 
+def _enabled_split_indices(dm, split_indices):
+    """Filter split outputs down to train plus the validation splits enabled for this run."""
+    enabled_split_stages = {"train", *dm.all_split_names}
+    return {split_stage: indices for split_stage, indices in split_indices.items() if split_stage in enabled_split_stages}
+
+
 def pretraining_setup_dataset(dm, stage=None):
     """
     Set up datasets by looping through all processed cellxgene / tahoe100m datasets.
@@ -58,14 +64,14 @@ def pretraining_setup_dataset(dm, stage=None):
         else:
             raise NotImplementedError
 
-        for split_stage in split_indices:
+        for split_stage, indices in _enabled_split_indices(dm, split_indices).items():
             tmp = getattr(dm, f"{split_stage}_indices")
-            tmp[dataset_name] = split_indices[split_stage]
+            tmp[dataset_name] = indices
 
             tmp = getattr(dm, f"{split_stage}_num_cell")
-            tmp[dataset_name] = len(split_indices[split_stage])
+            tmp[dataset_name] = len(indices)
 
-            dm.py_logger.info(f"Processed {split_stage}: {len(split_indices[split_stage])}")
+            dm.py_logger.info(f"Processed {split_stage}: {len(indices)}")
 
     for split_stage in ["train"] + dm.all_split_names:
         dm.py_logger.info(">>>>> stage: %s", split_stage)
@@ -230,14 +236,14 @@ def perturbation_pretraining_setup_dataset(dm, stage=None):
             else:
                 raise NotImplementedError
 
-            for split_stage in split_indices:
+            for split_stage, indices in _enabled_split_indices(dm, split_indices).items():
                 tmp = getattr(dm, f"{split_stage}_indices")
-                tmp[dataset_name] = split_indices[split_stage]
+                tmp[dataset_name] = indices
 
                 tmp = getattr(dm, f"{split_stage}_num_cell")
-                tmp[dataset_name] = len(split_indices[split_stage])
+                tmp[dataset_name] = len(indices)
 
-                dm.py_logger.info(f"Processed {split_stage}: {len(split_indices[split_stage])}")
+                dm.py_logger.info(f"Processed {split_stage}: {len(indices)}")
 
         if not exist_flag and not dm.data_args.skip_cached_indices:
             for split_stage in ["train"] + dm.all_split_names:

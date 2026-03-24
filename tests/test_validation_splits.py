@@ -9,6 +9,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.data.data_module.data_module import PBMCPerturbationDataModule
+from src.data.data_module.data_module_setup import _enabled_split_indices
 
 
 class AttrDict(dict):
@@ -83,3 +84,17 @@ def test_can_disable_test_split_for_validation():
 def test_rejects_unknown_validation_split_name():
     with pytest.raises(ValueError, match="Unsupported validation split names"):
         make_datamodule(["validation", "unknown"])
+
+
+def test_setup_filters_out_disabled_test_split():
+    dm = make_datamodule(["validation"])
+    split_indices = {
+        "train": [1, 2],
+        "validation": [3],
+        "test": [4],
+    }
+
+    assert _enabled_split_indices(dm, split_indices) == {
+        "train": [1, 2],
+        "validation": [3],
+    }
