@@ -6,6 +6,8 @@
 ## Build, Test, and Development Commands
 There is no package build step; development is driven by Python entrypoints plus Hydra overrides.
 
+- use conda environment `torch` for all runs. That include all packages you need.
+
 - `python -c "import hydra,pytorch_lightning,torch,numpy,pandas,anndata,scanpy,h5py,yaml,sklearn,transformers,timm,geomloss; print('env ok')"` checks the runtime environment.
 - `python src/apps/run/rawdata_diffusion_training.py run_name=smoke data=pbmc_finetune trainer.accelerator=cpu trainer.devices=1 trainer.max_steps=1 trainer.limit_val_batches=1 optimization.micro_batch_size=32 lightning.logger._target_=pytorch_lightning.loggers.logger.DummyLogger` runs a one-step training smoke test.
 - `python src/apps/run/rawdata_diffusion_sampling.py model_checkpoint_path=/abs/path/model.ckpt data=pbmc_finetune device=cpu sampling.num_sampled_batches=1 lightning.logger._target_=pytorch_lightning.loggers.logger.DummyLogger` smoke-tests sampling.

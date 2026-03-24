@@ -55,6 +55,7 @@ split_control: false
 sort_gene_names: false
 
 # Global split behavior
+validation_splits: [validation, test]
 random_holdout_ratio: 0.0005
 skip_cached_indices: false
 

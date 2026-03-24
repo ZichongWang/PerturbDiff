@@ -54,6 +54,7 @@ split_control: false
 sort_gene_names: false
 
 # Split definitions
+validation_splits: [validation, test]
 holdout_celltype: ${.replogle.holdout_celltype}
 holdout_batches: ${.replogle.holdout_batches}
 holdout_pert:

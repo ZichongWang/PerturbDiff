@@ -179,7 +179,17 @@ class PBMCPerturbationDataModule(PretrainingDataModule):
         self.data_args = data_args
         self.py_logger = py_logger
 
-        self.all_split_names = ["validation", "test"]
+        configured_validation_splits = getattr(self.data_args, "validation_splits", None)
+        if configured_validation_splits is None:
+            self.all_split_names = ["validation", "test"]
+        else:
+            self.all_split_names = list(configured_validation_splits)
+            allowed_split_names = {"validation", "test"}
+            invalid_split_names = [x for x in self.all_split_names if x not in allowed_split_names]
+            if invalid_split_names:
+                raise ValueError(f"Unsupported validation split names: {invalid_split_names}")
+            if len(self.all_split_names) == 0:
+                raise ValueError("validation_splits must contain at least one split")
 
     def get_dataset_names_and_paths(self, cfg, data_name):
 
