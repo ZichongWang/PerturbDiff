@@ -26,6 +26,7 @@ def build_model(cfg, logger, datamodule):
         py_logger=logger,
         optimizer_cfg=cfg.optimization,
         trainer_cfg=cfg.trainer,
+        sampling_eval_cfg=cfg.sampling_eval,
         all_split_names=datamodule.all_split_names,
     )
 

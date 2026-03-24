@@ -214,6 +214,29 @@ python src/apps/run/rawdata_diffusion_training.py \
   optimization.micro_batch_size=32
 ```
 
+Training-time sampling validation is also available from the training entrypoint. This runs reverse diffusion from noise on a small validation subset during each validation event and logs `sampling_validation_r2_epoch` and `sampling_validation_mmd_epoch` without writing sample `.h5ad` files.
+
+Example:
+
+```bash
+python src/apps/run/rawdata_diffusion_training.py \
+  run_name=debug_sampling_eval \
+  data=replogle_finetune \
+  path=trixie_path \
+  sampling_eval.enabled=true \
+  sampling_eval.num_batches=1 \
+  sampling_eval.use_ddim=true \
+  sampling_eval.progress=false
+```
+
+Relevant options under `sampling_eval`:
+
+- `enabled`: turn sampling-based validation on/off
+- `split`: which validation split to sample on, default `validation`
+- `num_batches`: how many validation batches to sample per validation event
+- `use_ddim`, `start_time`, `eta`, `guidance_strength`, `nw`, `start_guide_steps`: reverse-diffusion controls reused from the standalone sampling path
+- `seed`: RNG seed used for deterministic-enough sampling validation
+
 # Download
 
 Use `huggingface_hub` CLI for both datasets and released checkpoints.

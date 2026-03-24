@@ -16,6 +16,7 @@ Add an optional sampling-based validation path to training that runs full revers
   - Extract a helper that accepts `(model, diffusion, cfg-like sampling settings, dataloader, logger)` and returns metrics only.
   - Reuse the existing generation logic: build `batch_emb`, build `self_condition`, call DDIM/DDPM sampler, mask padded duplicates, compute `r2_score` and `SamplesLoss(loss="energy")`.
   - Do not call `save_adata` from training-time validation.
+  - Log results to wandb like normal training and validation step do.
 - Define training-time sampling metrics explicitly.
   - `sampling_validation_r2_epoch`: compute exactly like the current sampling pipeline, using concatenated subset predictions/truths and `r2_score(all_truths.mean(0), all_samples.mean(0))`.
   - `sampling_validation_mmd_epoch`: compute as the mean of per-batch energy-distance values across sampled validation batches.
@@ -27,6 +28,7 @@ Add an optional sampling-based validation path to training that runs full revers
   - Run sampling-eval only on global rank 0 to avoid duplicated expensive generation.
   - Log with rank-zero semantics and leave existing synchronized denoising-loss logging unchanged.
   - If needed, add a barrier after rank-0 sampling-eval to keep validation flow aligned.
+- Modify corresponding config files, and tell others how to use it in readme.
 
 ### Interfaces / Behavior
 - Public config addition in training: `sampling_eval.*`

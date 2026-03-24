@@ -5,15 +5,18 @@ import pickle
 import sys
 import time
 import tracemalloc
+from types import SimpleNamespace
 
 import hydra
 import numpy as np
 import pytorch_lightning as pl
 import torch
+import torch.distributed as dist
 from geomloss import SamplesLoss
 from pytorch_lightning.utilities import grad_norm
 from transformers.trainer_pt_utils import get_parameter_names
 
+from src.apps.sampling.sampling_generation import sample_dataloader_batches
 from src.common.utils import get_short_dsname
 from src.models.covariate_encoding import CovEncoder
 
@@ -26,7 +29,7 @@ from src.models.lightning.lightning_factories import (
 
 class PlModel(pl.LightningModule):
     """Plmodel implementation used by the PerturbDiff pipeline."""
-    def __init__(self, cov_encoding_cfg, model_cfg, py_logger, optimizer_cfg, trainer_cfg, all_split_names):
+    def __init__(self, cov_encoding_cfg, model_cfg, py_logger, optimizer_cfg, trainer_cfg, all_split_names, sampling_eval_cfg=None):
         """
         Initialize the class instance.
 
@@ -45,6 +48,7 @@ class PlModel(pl.LightningModule):
         self.optimizer_cfg = optimizer_cfg
         self.trainer_cfg = trainer_cfg
         self.all_split_names = all_split_names
+        self.sampling_eval_cfg = sampling_eval_cfg
 
         for split in self.all_split_names:
             setattr(self, f"validation_{split}_step_outputs", [])
@@ -182,6 +186,80 @@ class PlModel(pl.LightningModule):
                     sync_dist=True,
                 )
             getattr(self, f"validation_{split}_step_outputs").clear()
+
+        if getattr(self.sampling_eval_cfg, "enabled", False):
+            self._run_sampling_validation_epoch()
+
+    @torch.no_grad()
+    def _run_sampling_validation_epoch(self):
+        """Run reverse-diffusion validation metrics on the configured split."""
+        if self.trainer.sanity_checking:
+            return
+        if not self.trainer.is_global_zero:
+            if dist.is_initialized():
+                dist.barrier()
+            return
+
+        split = getattr(self.sampling_eval_cfg, "split", "validation")
+        if split not in self.all_split_names:
+            raise ValueError(f"sampling_eval.split={split} is not in available splits {self.all_split_names}")
+
+        split_idx = self.all_split_names.index(split)
+        dataloaders = self.trainer.val_dataloaders
+        if not isinstance(dataloaders, (list, tuple)):
+            dataloaders = [dataloaders]
+        dataloader = dataloaders[split_idx]
+        runtime_cfg = SimpleNamespace(
+            data=dataloader.dataset.data_args,
+            model=self.model_cfg,
+            optimization=self.optimizer_cfg,
+        )
+
+        self.py_logger.info("Running sampling-based validation on split=%s", split)
+        metrics = sample_dataloader_batches(
+            self,
+            self.diffusion,
+            runtime_cfg,
+            self.device,
+            self.py_logger,
+            dataloader,
+            datamodule=self.trainer.datamodule,
+            num_sampled_batches=getattr(self.sampling_eval_cfg, "num_batches", 1),
+            use_ddim=getattr(self.sampling_eval_cfg, "use_ddim", True),
+            clip_denoised=getattr(self.sampling_eval_cfg, "clip_denoised", True),
+            progress=getattr(self.sampling_eval_cfg, "progress", False),
+            guidance_strength=getattr(self.sampling_eval_cfg, "guidance_strength", 1.0),
+            start_time=getattr(self.sampling_eval_cfg, "start_time", 100),
+            nw=getattr(self.sampling_eval_cfg, "nw", 0.5),
+            start_guide_steps=getattr(self.sampling_eval_cfg, "start_guide_steps", 500),
+            eta=getattr(self.sampling_eval_cfg, "eta", 0.0),
+            seed=getattr(self.sampling_eval_cfg, "seed", None),
+            collect_covariates=False,
+        )
+        metric_prefix = "sampling_validation" if split == "validation" else f"sampling_{split}"
+        self.log(
+            f"{metric_prefix}_r2_epoch",
+            metrics["r2_metric"],
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+            add_dataloader_idx=False,
+            rank_zero_only=True,
+        )
+        self.log(
+            f"{metric_prefix}_mmd_epoch",
+            metrics["mmd_metric"],
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+            add_dataloader_idx=False,
+            rank_zero_only=True,
+        )
+
+        if dist.is_initialized():
+            dist.barrier()
 
     def on_train_batch_end(self, outputs, batch, batch_idx):
         """Execute `on_train_batch_end` and return values used by downstream logic."""

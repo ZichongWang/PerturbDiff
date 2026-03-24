@@ -23,7 +23,7 @@ data.embed_key=X_hvg
 "
 
 COMMON_REPLOGLE_TRAIN="
-optimization.micro_batch_size=2048
+optimization.micro_batch_size=512
 data.use_cell_set=32
 optimization.optimizer.lr=0.0005
 cov_encoding.replogle_gene_encoding=genept
@@ -62,11 +62,11 @@ SCRATCH_REPLOGLE_EXTRA="
 data=replogle_finetune
 data.num_workers=16
 data.prefetch_factor=12
-trainer.val_check_interval=1.0
+trainer.val_check_interval=0.1
 lightning.callbacks.checkpoint.every_n_train_steps=10000
 run_name=from_scratch_replogle
 lightning.logger.project=diffusion_pertub
-lightning.logger.name=replogle_no_batch_bs2048
+lightning.logger.name=replogle_check
 "
 
 CKPT_NAMING="

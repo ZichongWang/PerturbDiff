@@ -14,6 +14,21 @@ defaults:
 run_name: pbmc_from_scratch
 save_dir_path: null # automatically filled as "{trainer.default_root_dir}/{run_name}"
 
+# Optional sampling-based validation during training
+sampling_eval:
+  enabled: true
+  split: validation
+  num_batches: 4
+  use_ddim: true
+  clip_denoised: true
+  guidance_strength: 1.0
+  start_time: 100
+  nw: 0.5
+  start_guide_steps: 500
+  eta: 0.0
+  progress: false
+  seed: ${optimization.seed}
+
 # Optional torch profiler
 profiler:
   enabled: false
