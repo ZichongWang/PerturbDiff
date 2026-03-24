@@ -2,6 +2,7 @@
 
 defaults:
   - _self_
+  - optional debug: null
   - trainer: base
   - lightning: base
   - data: pbmc_finetune
@@ -13,6 +14,7 @@ defaults:
 # Run naming and output
 run_name: sampling
 save_dir_path: null # automatically filled as "{trainer.default_root_dir}/{run_name}"
+log_full_config: false
 
 # Input checkpoint and device
 model_checkpoint_path: null # set via CLI: model_checkpoint_path=/path/to/checkpoint.ckpt

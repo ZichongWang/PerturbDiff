@@ -31,7 +31,8 @@ def main(cfg):
     # Set up logging
     logger = setup_loggings(cfg)
     logger.info("Starting diffusion model sampling")
-    logger.info(f"Config: {omegaconf.OmegaConf.to_yaml(cfg)}")
+    if getattr(cfg, "log_full_config", False):
+        logger.info("Config:\n%s", omegaconf.OmegaConf.to_yaml(cfg))
     
     # set seed before initializing models
     pl.seed_everything(cfg.optimization.seed)

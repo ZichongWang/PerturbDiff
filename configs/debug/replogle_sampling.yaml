@@ -1,0 +1,19 @@
+# Small, readable sampling run for debugger use.
+
+run_name: replogle_sampling_debug
+log_full_config: false
+device: "cuda:0"
+
+optimization:
+  micro_batch_size: 32
+
+data:
+  num_workers: 0
+  prefetch_factor: null
+  persistent_workers: false
+  skip_cached_indices: true
+
+sampling:
+  num_sampled_batches: 1
+  start_time: 20
+  progress: false
