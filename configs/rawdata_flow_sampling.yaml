@@ -1,0 +1,28 @@
+# Top-level config for flow sampling entrypoint
+
+defaults:
+  - _self_ # Keep values defined in this file in the composed config.
+  - trainer: base # Reuse the shared trainer runtime defaults.
+  - lightning: flow_base # Use the flow-specific Lightning module and callback wiring.
+  - data: replogle_finetune # Default to the Replogle finetuning dataset for flow sampling.
+  - optimization: flow_base # Use the flow-specific optimization settings.
+  - path: trixie_path # Reuse the shared path configuration.
+  - model: flow_base # Use the flow-specific model configuration.
+  - cov_encoding: trixie_onehot # Reuse the shared covariate encoding setup.
+
+run_name: replogle_flow_sampling # Experiment name used for logs and saved outputs.
+save_dir_path: null # Filled at runtime as ${trainer.default_root_dir}/${run_name}.
+log_full_config: false # Print the fully resolved Hydra config when true.
+
+model_checkpoint_path: null # Full Lightning checkpoint used for flow inference.
+device: "auto" # Device selection for sampling: auto, cpu, cuda, cuda:0, and so on.
+
+sampling:
+  num_sampled_batches: 4 # Number of validation batches to sample in one run.
+  batch_size: ${..optimization.micro_batch_size} # Batch size used by the sampling dataloader when applicable.
+  flow_steps: 8 # Euler integration steps used from t=0 to t=1.
+  clip_denoised: true # Zero final generated counts below model.cutoff after sampling.
+  progress: true # Show a progress bar for Euler sampling.
+  guidance_strength: 1.0 # Classifier-free guidance scale applied in velocity space.
+  output_format: "npz" # Output format for saved predictions and truths.
+  output_dir: null # Output directory; defaults to a run-specific folder when null.

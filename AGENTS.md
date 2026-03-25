@@ -18,7 +18,7 @@ Before any run, replace the placeholder roots in `configs/path/trixie_path.yaml`
 Follow the existing Python style: 4-space indentation, `snake_case` for modules, functions, and Hydra keys, and `PascalCase` for classes such as `PlModel`. Prefer short docstrings over long inline commentary. Add new configuration as reusable YAML in `configs/` instead of hardcoding paths or hyperparameters in scripts.
 
 ## Testing Guidelines
-No dedicated `tests/` directory is committed yet, so contributors should treat smoke runs as required validation. For data-pipeline edits, verify config resolution and datamodule setup on a tiny run. For model or sampling changes, include the exact command you used and the output/checkpoint location you verified.
+ Contributors should treat smoke runs as required validation. For data-pipeline edits, verify config resolution and datamodule setup on a tiny run. For model or sampling changes, include the exact command you used and the output/checkpoint location you verified. If needed, write test files in `\test` folder.
 
 ## Commit & Pull Request Guidelines
 Recent history uses short lowercase subjects like `format`, `typo`, and `minor`. Keep commit titles concise and imperative; add a scope when helpful, for example `data: fix pbmc cache path`. Pull requests should summarize the affected dataset or module, list the Hydra overrides used for validation, and mention any required checkpoints or large external files. Include screenshots only for changes to `index.html`, figures in `asset/`, or other user-visible artifacts.

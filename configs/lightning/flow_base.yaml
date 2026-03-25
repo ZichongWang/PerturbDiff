@@ -1,0 +1,38 @@
+# Flow Lightning module/data module wiring
+
+model_module:
+  _target_: src.models.flow.flow_lightning_module.FlowPlModel # Flow LightningModule class used by Hydra instantiation.
+  py_logger: null # Placeholder filled at runtime with the Python logger instance.
+  optimizer_cfg: null # Placeholder filled at runtime with the optimization config.
+  model_cfg: null # Placeholder filled at runtime with the model config.
+
+data_module:
+  _target_: src.data.data_module.data_module.PretrainingDataModule # Shared datamodule target retained for compatibility.
+
+ema:
+  decay: 0 # EMA decay factor; set above zero to enable weight averaging.
+  update_steps: 1 # Number of optimizer steps between EMA updates.
+
+callbacks:
+  checkpoint:
+    _target_: pytorch_lightning.callbacks.ModelCheckpoint # Save flow checkpoints during training.
+    every_n_train_steps: 20000 # Save a checkpoint every this many training steps.
+    every_n_epochs: null # Disable epoch-based checkpointing when null.
+    save_top_k: 3 # Keep the best K checkpoints according to the monitored metric.
+    monitor: "validation_validation_loss_epoch" # Validation metric used to rank checkpoints.
+    mode: "min" # Lower validation loss is better.
+    filename: "{epoch}-{step}-{validation_validation_loss_epoch:.4f}" # Filename template for saved checkpoints.
+    save_last: True # Also keep the most recent checkpoint.
+    dirpath: null # Let Lightning derive the checkpoint directory when null.
+  lr_monitor:
+    _target_: pytorch_lightning.callbacks.LearningRateMonitor # Log learning-rate values during training.
+    logging_interval: "step" # Record the learning rate every optimizer step.
+  progress_bar:
+    _target_: pytorch_lightning.callbacks.progress.TQDMProgressBar # Use the default TQDM progress bar.
+    refresh_rate: 10 # Refresh the progress bar every N updates.
+
+logger:
+  _target_: pytorch_lightning.loggers.WandbLogger # Default experiment logger for flow runs.
+  save_dir: ${...path.wandb.logging_dir} # Root directory where W&B offline files are stored.
+  project: "flow_perturb" # Separate W&B project name for flow experiments.
+  name: ${...run_name} # Logger run name derived from the top-level run_name.

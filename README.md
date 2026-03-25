@@ -237,6 +237,115 @@ Relevant options under `sampling_eval`:
 - `use_ddim`, `start_time`, `eta`, `guidance_strength`, `nw`, `start_guide_steps`: reverse-diffusion controls reused from the standalone sampling path
 - `seed`: RNG seed used for deterministic-enough sampling validation
 
+# Flow / Rectified Flow
+
+The repository now also includes a **separate rectified-flow pipeline** alongside the original diffusion pipeline.
+The flow path does **not** reuse diffusion configs or diffusion entrypoints.
+
+Flow entrypoints:
+
+- `src/apps/run/rawdata_flow_training.py`
+- `src/apps/run/rawdata_flow_sampling.py`
+
+Flow config files:
+
+- `configs/rawdata_flow_training.yaml`
+- `configs/rawdata_flow_sampling.yaml`
+- `configs/model/flow_base.yaml`
+- `configs/lightning/flow_base.yaml`
+- `configs/optimization/flow_base.yaml`
+
+Flow Replogle helper scripts:
+
+- `replogle_flow_from_scratch.sh`
+- `replogle_flow_sampling.sh`
+
+## Flow Behavior
+
+Training uses rectified flow matching on paired control/perturbed cell sets:
+
+- `x0`: control cells from `cont_emb`
+- `x1`: perturbed cells from `pert_emb`
+- pairing: controls are randomly permuted **within each cell set**
+- interpolation: `x_t = (1 - t) x0 + t x1`
+- target velocity: `x1 - x0`
+- terminal prediction: `x1_hat = x_t + (1 - t) v_t`
+
+Loss:
+
+- MSE term: flow-matching MSE between predicted velocity and `x1 - x0`
+- MMD term: computed between `x1_hat` and `x1`
+- weighted MMD: `alpha * t^gamma / (1 - t)`
+
+Flow-specific knobs:
+
+- `model.enable_self_condition`
+  - `true`: the first layer sees concatenated `[x_t, x1_hat_prev]`
+  - `false`: the first layer sees only `x_t`, so the input width stays at the base gene dimension
+- `model.output_activation`
+  - use `identity` for velocity prediction so negative values are allowed
+- `model.pairing_strategy`
+  - current default is `within_set_random`
+- `optimization.mmd_weight_alpha`
+  - non-negative coefficient in the weighted MMD term
+- `optimization.mmd_weight_gamma`
+  - non-negative exponent in the weighted MMD term
+- `sampling.flow_steps`
+  - Euler integration steps used during inference
+- `sampling.guidance_strength`
+  - classifier-free guidance scale applied directly in velocity space
+
+## Flow Training on Replogle
+
+Primary script:
+
+```bash
+bash replogle_flow_from_scratch.sh
+```
+
+Useful smoke-test override:
+
+```bash
+bash replogle_flow_from_scratch.sh \
+  trainer.max_steps=1 \
+  trainer.limit_val_batches=1 \
+  sampling_eval.num_batches=1 \
+  data.num_workers=0 \
+  data.prefetch_factor=null \
+  optimization.micro_batch_size=64
+```
+
+This script keeps the same Replogle runtime assumptions as the diffusion helper:
+
+- `data=replogle_finetune`
+- fake-batch input file under `nadig_processed_data/replogle_fake_batch.h5ad`
+- `data.use_cell_set=32`
+- `cov_encoding.replogle_gene_encoding=genept`
+- `cov_encoding.celltype_encoding=llm`
+- `model.p_drop_control=0`
+
+## Flow Sampling on Replogle
+
+Set a full Lightning checkpoint and run:
+
+```bash
+CKPT_PATH=/abs/path/to/flow_checkpoint.ckpt bash replogle_flow_sampling.sh
+```
+
+Useful smoke-test override:
+
+```bash
+CKPT_PATH=/abs/path/to/flow_checkpoint.ckpt \
+bash replogle_flow_sampling.sh \
+  sampling.num_sampled_batches=1 \
+  sampling.flow_steps=2 \
+  data.num_workers=0 \
+  data.prefetch_factor=null
+```
+
+Sampling starts from the control cells and integrates the learned velocity field from `t=0` to `t=1` with a fixed-step Euler solver.
+Increasing `sampling.flow_steps` raises inference cost but usually gives a smoother approximation to the learned flow.
+
 # Download
 
 Use `huggingface_hub` CLI for both datasets and released checkpoints.

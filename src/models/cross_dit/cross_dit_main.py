@@ -3,7 +3,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 
 from src.common.utils import get_short_dsname
 from src.models.cross_dit.cross_dit_component import (
@@ -53,6 +52,7 @@ class Cross_DiT(nn.Module):
         self.num_heads = self.model_cfg.dit_num_heads
         self.separate_embedder = model_cfg.separate_embedder
         self.separate_final_layer = False
+        self.enable_self_condition = bool(getattr(model_cfg, "enable_self_condition", True))
         self._setup_dims(model_cfg)
         self._validate_config(model_cfg)
 
@@ -63,7 +63,7 @@ class Cross_DiT(nn.Module):
         self._build_conditioning_modules(model_cfg)
         self._build_backbone_and_heads(model_cfg, mlp_ratio)
 
-        self.output_fn = F.relu
+        self.output_fn = self._resolve_output_activation(model_cfg)
 
         # ---------------------------------------------------------------------
         # Parameter initialization
@@ -73,15 +73,25 @@ class Cross_DiT(nn.Module):
     def _setup_dims(self, model_cfg):
         """Set key model dimensions used across embedders/heads."""
         self.hidden_size = model_cfg.hidden_num[1]
-        # hidden_num[0] is the base gene dimension before concat with self-conditioning.
-        self.input_size = model_cfg.hidden_num[0]
-        self.output_size = self.input_size
-        # x-embedder input concatenates current input and self-conditioning.
-        self.input_size *= 2
+        self.base_input_size = model_cfg.hidden_num[0]
+        self.output_size = self.base_input_size
+        self.input_concat_factor = 2 if self.enable_self_condition else 1
+        self.input_size = self.base_input_size * self.input_concat_factor
 
     def _validate_config(self, model_cfg):
         """Validate assumptions enforced by this refactor."""
         assert isinstance(model_cfg.dit_depth, int), "model_cfg.dit_depth must be an integer."
+
+    @staticmethod
+    def _resolve_output_activation(model_cfg):
+        """Resolve the configured output activation."""
+        activation_name = getattr(model_cfg, "output_activation", getattr(model_cfg, "output_fn", "relu"))
+        activation_name = str(activation_name).lower()
+        if activation_name == "relu":
+            return nn.ReLU()
+        if activation_name == "identity":
+            return nn.Identity()
+        raise NotImplementedError(f"Unsupported output activation: {activation_name}")
 
     def _build_x_embedders(self, model_cfg):
         """Build x/control input embedders (shared or dataset-specific)."""
@@ -262,7 +272,7 @@ class Cross_DiT(nn.Module):
             gene_emb = self.gene_embedding(None, batch_size=x_input.shape[0], x_len=x_input.shape[1])
 
         t = self.t_embedder(t)
-        c = F.silu(t + class_emb) if self.model_cfg.use_class_silu else t + class_emb
+        c = torch.nn.functional.silu(t + class_emb) if self.model_cfg.use_class_silu else t + class_emb
 
         x, x_control = self._get_embedded_x(
             x_input,

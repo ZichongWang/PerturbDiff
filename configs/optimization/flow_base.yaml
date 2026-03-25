@@ -1,0 +1,13 @@
+# Flow optimization preset
+
+defaults:
+  - _self_ # Keep values defined in this file in the composed config.
+  - optimizer: adam # Reuse the shared Adam/AdamW optimizer group.
+  - scheduler: cosine # Reuse the shared cosine learning-rate scheduler group.
+
+micro_batch_size: 128 # Number of examples processed per optimizer step on each device.
+seed: 42 # Global random seed for dataloading, training, and sampling.
+blur: 0.05 # GeomLoss blur parameter used by SamplesLoss.
+use_mse_loss: true # Include the flow-matching MSE term in the total loss when true.
+mmd_weight_alpha: 1.0 # Non-negative alpha coefficient in alpha * t^gamma / (1 - t).
+mmd_weight_gamma: 0.0 # Non-negative gamma exponent in alpha * t^gamma / (1 - t).

@@ -1,0 +1,39 @@
+# Top-level config for flow training entrypoint
+
+defaults:
+  - _self_ # Keep values defined in this file in the composed config.
+  - trainer: base # Reuse the shared trainer runtime defaults.
+  - lightning: flow_base # Use the flow-specific Lightning module and callback wiring.
+  - data: replogle_finetune # Default to the Replogle finetuning dataset for flow runs.
+  - optimization: flow_base # Use the flow-specific optimization settings.
+  - path: trixie_path # Reuse the shared path configuration.
+  - model: flow_base # Use the flow-specific model configuration.
+  - cov_encoding: trixie_onehot # Reuse the shared covariate encoding setup.
+
+run_name: replogle_flow_train # Experiment name used for logs and checkpoints.
+save_dir_path: null # Filled at runtime as ${trainer.default_root_dir}/${run_name}.
+
+sampling_eval:
+  enabled: true # Run flow-based validation sampling during validation events.
+  split: validation # Validation split used for sampling-based metrics.
+  num_batches: 16 # Number of validation batches to sample per evaluation event.
+  flow_steps: 100 # Euler integration steps used during sampling-based validation.
+  clip_denoised: true # Zero final generated counts below model.cutoff after sampling.
+  guidance_strength: 1.0 # Classifier-free guidance scale applied in velocity space.
+  progress: false # Disable the sampling progress bar during validation by default.
+  seed: ${optimization.seed} # Seed used to make validation sampling reproducible.
+
+profiler:
+  enabled: false # Disable the optional torch profiler by default.
+  wait_steps: 1 # Number of warmup wait steps before profiling starts.
+  warmup_steps: 1 # Number of profiler warmup steps.
+  active_steps: 3 # Number of active profiling steps to record.
+  repeat: 1 # Number of profiler schedule repeats.
+  record_shapes: true # Record tensor shapes in profiler traces.
+  profile_memory: true # Record memory usage in profiler traces.
+  with_stack: false # Disable Python stack collection for profiler traces.
+  with_flops: false # Disable flop estimation in profiler traces.
+  row_limit: 20 # Maximum number of profiler table rows to print.
+  activities: null # Use the default activity set when profiling is enabled.
+  output_dir: null # Use the trainer output directory for profiler files when null.
+  filename: "flow_training_profiler" # Base filename used for profiler outputs.

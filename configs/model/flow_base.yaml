@@ -1,0 +1,34 @@
+# Rectified-flow model and backbone defaults
+
+ckpt_path: null # Lightning checkpoint path used to resume trainer.fit or trainer.validate.
+model_type: "Cross_DiT" # Backbone architecture used to predict the flow velocity field.
+Block_type: MM_DiT # Transformer block variant used inside Cross_DiT.
+dit_input_size: 1 # Compatibility placeholder retained for the existing backbone config shape.
+dit_depth: 8 # Number of Cross_DiT transformer blocks.
+dit_num_heads: 8 # Number of attention heads in each transformer block.
+qk_norm: True # Compatibility flag retained from the existing model config family.
+input_dim: 2000 # Number of genes per cell representation.
+hidden_num: [2000, 512] # [gene_dim, hidden_dim] used for input/output width and transformer width.
+dropout: 0.1 # Compatibility dropout value retained with the shared backbone config family.
+output_activation: "identity" # Final activation for velocity prediction; identity preserves negative outputs.
+use_orig_gene_count_as_emb: True # Keep the shared backbone behavior that uses gene counts as part of the input embedding.
+class_emb_gather_strategy: ${..cov_encoding.gather_strategy} # Shared covariate gather strategy used for class embeddings.
+class_emb_hidden_dimension: ${..cov_encoding.hidden_dim} # Shared hidden size used by the covariate/class embedding pathway.
+use_gene_embedding: False # Enable pretrained gene embeddings when true.
+gene_embedding_type: "linear" # Projection type used when gene embeddings are enabled.
+p_drop_cond: 0.1 # Probability of dropping batch conditioning during training for classifier-free guidance.
+p_drop_control: 0.1 # Probability of zeroing the control branch input during training.
+enable_self_condition: false # Double first-layer input width and reuse predicted endpoints when true.
+pairing_strategy: "within_set_random" # Control-to-perturbed pairing strategy applied inside each cell set.
+steps: 1000 # Time-embedding scale used to map continuous flow time into the backbone timestep range.
+use_class_silu: false # Apply SiLU after adding timestep and class embeddings when true.
+separate_embedder: false # Use dataset-specific input embedders when true.
+replace_batch_encoder: false # Compatibility flag retained for shared runtime helpers.
+dataset_dict: null # Populated at runtime from the datamodule dataset names.
+cutoff: 1e-4 # Values below this threshold are zeroed only on the final sampled counts when clipping is enabled.
+no_mse_loss: false # Disable the flow-matching MSE term and train only with weighted MMD when true.
+replace_2kgene_layer: false # Compatibility flag retained for shared model surgery helpers.
+replace_1w2gene_layer: false # Compatibility flag retained for shared model surgery helpers.
+reinitial_adaln: false # Compatibility flag retained for adaLN reinitialization experiments.
+reinitial_all: false # Compatibility flag retained for full-weight reinitialization experiments.
+reinitial_all_from_scratch: false # Reinitialize the backbone weights before training starts when true.

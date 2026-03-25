@@ -44,7 +44,7 @@ def initialize_weights(self):
     nn.init.constant_(self.control_final_layer.adaLN_modulation[-1].weight, 0)
     nn.init.constant_(self.control_final_layer.adaLN_modulation[-1].bias, 0)
 
-    if (self.model_cfg.predict_xstart) and self.output_fn != nn.Identity():
+    if getattr(self.model_cfg, "predict_xstart", False) and not isinstance(self.output_fn, nn.Identity):
         pass
     else:
         nn.init.constant_(self.final_layer.linear.weight, 0)
@@ -71,7 +71,8 @@ def replace_2kgene_layer(self, new_input_size):
     :return: Computed output(s) for this function.
     """
     new_output_size = new_input_size
-    new_input_size *= 2
+    concat_factor = 2 if getattr(self, "enable_self_condition", True) else 1
+    new_input_size *= concat_factor
 
     # embedder layer
     if self.model_cfg.separate_embedder:
