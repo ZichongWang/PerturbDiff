@@ -266,7 +266,7 @@ Training uses rectified flow matching on paired control/perturbed cell sets:
 
 - `x0`: control cells from `cont_emb`
 - `x1`: perturbed cells from `pert_emb`
-- pairing: controls are randomly permuted **within each cell set**
+- pairing: controls are paired **within each cell set**, either by random permutation or Sinkhorn OT
 - interpolation: `x_t = (1 - t) x0 + t x1`
 - target velocity: `x1 - x0`
 - terminal prediction: `x1_hat = x_t + (1 - t) v_t`
@@ -285,7 +285,16 @@ Flow-specific knobs:
 - `model.output_activation`
   - use `identity` for velocity prediction so negative values are allowed
 - `model.pairing_strategy`
-  - current default is `within_set_random`
+  - `within_set_random` keeps the old random pairing
+  - `ot_sinkhorn` solves entropic OT inside each cell set and samples one control partner from each coupling row
+- `model.ot_cost`
+  - current flow OT implementation supports `l2_squared`
+- `model.ot_reg`
+  - entropy regularization strength for Sinkhorn OT
+- `model.ot_num_iters`
+  - maximum Sinkhorn iterations for OT pairing
+- `model.ot_sampling`
+  - current flow OT implementation supports `row_multinomial`
 - `optimization.mmd_weight_alpha`
   - non-negative coefficient in the weighted MMD term
 - `optimization.mmd_weight_gamma`
@@ -313,6 +322,12 @@ bash replogle_flow_from_scratch.sh \
   data.num_workers=0 \
   data.prefetch_factor=null \
   optimization.micro_batch_size=64
+```
+
+Enable OT pairing on the same script by adding:
+
+```bash
+bash replogle_flow_from_scratch.sh model.pairing_strategy=ot_sinkhorn
 ```
 
 This script keeps the same Replogle runtime assumptions as the diffusion helper:

@@ -96,9 +96,15 @@ class RectifiedFlowTrainingMixin:
         if MMD_loss_fn is None:
             MMD_loss_fn = SamplesLoss(loss="energy", blur=0.05)
 
-        paired_x0, pairing_perm = pair_control_within_set(
+        paired_x0, pairing_metadata = pair_control_within_set(
             control_input_start,
+            x_start,
             strategy=getattr(self.model_cfg, "pairing_strategy", "within_set_random"),
+            ot_cost=getattr(self.model_cfg, "ot_cost", "l2_squared"),
+            ot_reg=float(getattr(self.model_cfg, "ot_reg", 0.05)),
+            ot_num_iters=int(getattr(self.model_cfg, "ot_num_iters", 200)),
+            ot_sampling=getattr(self.model_cfg, "ot_sampling", "row_multinomial"),
+            return_coupling=bool(getattr(self.model_cfg, "ot_return_coupling", False)),
         )
 
         t = th.rand(x_start.shape[0], device=x_start.device, dtype=x_start.dtype).clamp(max=1.0 - 1e-6)
@@ -146,27 +152,20 @@ class RectifiedFlowTrainingMixin:
         x1_hat = self.velocity_to_endpoint(x_t, velocity_pred, t)
 
         terms = {}
-        mse1 = mean_flat((target_velocity - velocity_pred) ** 2)
+        mse = mean_flat((target_velocity - velocity_pred) ** 2)
         if model.model_cfg.no_mse_loss:
-            mse1 = th.zeros_like(mse1)
-        terms["mse1"] = mse1
-        terms["loss1"] = mse1
+            mse = th.zeros_like(mse)
+        terms["mse"] = mse
 
         if mmd_weight_alpha == 0.0:
-            raw_mmd = th.zeros_like(mse1)
-            weighted_mmd = th.zeros_like(mse1)
+            raw_mmd = th.zeros_like(mse)
+            weighted_mmd = th.zeros_like(mse)
         else:
             raw_mmd = MMD_loss_fn(x_start.type_as(x1_hat), x1_hat)
             weighted_mmd = raw_mmd * self._compute_mmd_weight(t, mmd_weight_alpha, mmd_weight_gamma).type_as(raw_mmd)
 
-        terms["mmd1_raw"] = raw_mmd.nanmean()
-        terms["mmd1_raw_list"] = raw_mmd.detach()
-        terms["mmd1"] = weighted_mmd.nanmean()
-        terms["mmd1_list"] = weighted_mmd.detach()
-        terms["loss"] = mse1 + weighted_mmd
-        terms["weights"] = th.ones_like(terms["loss"])
-        terms["t"] = t.detach()
-        terms["pairing_perm"] = pairing_perm.detach()
+        terms["mmd_weighted"] = weighted_mmd
+        terms["mmd_raw"] = raw_mmd
 
         if return_model_output:
             return terms, model_output

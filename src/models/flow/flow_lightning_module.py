@@ -114,16 +114,16 @@ class FlowPlModel(pl.LightningModule):
         :return: Training loss.
         """
         loss_dict = self._compute_loss(batch)
-        loss = (loss_dict["loss"] * loss_dict["weights"]).mean()
+        loss = (loss_dict["loss"]).mean()
 
-        log_dict = {"training_loss_step": loss}
-        for k, v in loss_dict.items():
-            if k.startswith("dataset_loss_"):
-                log_dict[k] = v
+        log_dict = {"training_loss_step": loss.detach()}
+        # for k, v in loss_dict.items():
+        #     if k.startswith("dataset_loss_"):
+        #         log_dict[k] = v
 
         assert self.model.model_name == "Cross_DiT"
-        log_dict["training_Pert_loss_step"] = loss_dict["loss1"]
-        log_dict["training_MMD_Pert_loss_step"] = loss_dict["mmd1"]
+        log_dict["training_MSE_loss_step"] = loss_dict["mse"].mean().detach()
+        log_dict["training_MMD_loss_step"] = loss_dict["mmd_raw"].mean().detach()
 
         self.log_data(log_dict, train=True)
         return {"loss": loss}
@@ -141,16 +141,17 @@ class FlowPlModel(pl.LightningModule):
         split = self.all_split_names[dataloader_idx]
 
         loss_dict = self._compute_loss(batch)
-        loss = (loss_dict["loss"] * loss_dict["weights"]).mean()
+
+        loss = (loss_dict["loss"]).mean()
 
         log_dict = {f"validation_{split}_loss": loss}
-        for k, v in loss_dict.items():
-            if k.startswith("dataset_loss_"):
-                log_dict[k] = v
+        # for k, v in loss_dict.items():
+        #     if k.startswith("dataset_loss_"):
+        #         log_dict[k] = v
 
         assert self.model.model_name == "Cross_DiT"
-        log_dict[f"validation_{split}_Pert_loss"] = loss_dict["loss1"]
-        log_dict[f"validation_{split}_MMD_Pert_loss"] = loss_dict["mmd1"]
+        log_dict[f"validation_{split}_MSE_loss"] = loss_dict["mse"].mean()
+        log_dict[f"validation_{split}_MMD_loss"] = loss_dict["mmd_raw"].mean()
         self.log_data(log_dict, train=False)
 
         self.validation_step_outputs.append({f"validation_{split}_loss": loss})
@@ -301,26 +302,32 @@ class FlowPlModel(pl.LightningModule):
             mmd_weight_gamma=self.optimizer_cfg.mmd_weight_gamma,
         )
 
+        mse = losses['mse']
+        mmd_weighted = losses["mmd_weighted"]
+        mmd_raw = losses["mmd_raw"]
+        if self.optimizer_cfg.use_mse_loss:
+            loss = mse + mmd_weighted
+        else:
+            loss = mmd_weighted
+
         return_dict = {}
-        keys = list(set([get_short_dsname(x) for x in self.model.model_cfg.dataset_dict]))
-        name_arr = np.array([get_short_dsname(x) for x in cond["ds_name"]])
-        for ds_name in keys:
-            if (name_arr == ds_name).any():
-                return_dict[f"dataset_loss_mse1_{ds_name}"] = losses["loss1"][name_arr == ds_name].nanmean().item()
-                return_dict[f"dataset_loss_mmd1_{ds_name}"] = losses["mmd1_list"][name_arr == ds_name].nanmean().item()
-            else:
-                return_dict[f"dataset_loss_mse1_{ds_name}"] = 0
-                return_dict[f"dataset_loss_mmd1_{ds_name}"] = 0
+        # keys = list(set([get_short_dsname(x) for x in self.model.model_cfg.dataset_dict]))
+        # name_arr = np.array([get_short_dsname(x) for x in cond["ds_name"]])
+        # for ds_name in keys:
+        #     if (name_arr == ds_name).any():
+        #         return_dict[f"dataset_loss_mse_{ds_name}"] = mse[name_arr == ds_name].detach().nanmean().item()
+        #         return_dict[f"dataset_loss_mmd_{ds_name}"] = mmd_per_sample[name_arr == ds_name].detach().nanmean().item()
+        #     else:
+        #         return_dict[f"dataset_loss_mse1_{ds_name}"] = 0
+        #         return_dict[f"dataset_loss_mmd1_{ds_name}"] = 0
 
         assert self.model.model_name == "Cross_DiT"
-        losses["loss"] = losses["loss1"] + losses["mmd1_list"]
-        if not self.optimizer_cfg.use_mse_loss:
-            losses["loss"] = losses["mmd1_list"]
-
-        return_dict["mmd1"] = losses["mmd1"]
-        return_dict["loss1"] = (losses["loss1"] * losses["weights"]).mean()
-        return_dict["loss"] = losses["loss"]
-        return_dict["weights"] = losses["weights"]
+        return_dict = losses
+        return_dict['loss'] = loss
+        # return_dict["mmd"] = losses["mmd"].detach()
+        # return_dict["loss1"] = mse_per_sample.detach().mean()
+        # return_dict["loss"] = total_per_sample_loss
+        # return_dict["weights"] = losses["weights"]
         return return_dict
 
     def configure_optimizers(self):

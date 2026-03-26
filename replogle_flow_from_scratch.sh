@@ -34,6 +34,18 @@ optimization.optimizer.lr=0.0003
 cov_encoding.replogle_gene_encoding=genept
 "
 
+OT_RELATED="
+model.pairing_strategy=ot_sinkhorn
+model.ot_cost=l2_squared
+model.ot_reg=0.05
+model.ot_num_iters=200
+model.ot_sampling=row_multinomial
+model.ot_return_coupling=false
+"
+
+
+
+
 COMMON_SCRATCH_DATA="
 cov_encoding.celltype_encoding=llm
 model.p_drop_control=0
@@ -48,7 +60,7 @@ trainer.val_check_interval=1.0
 lightning.callbacks.checkpoint.every_n_train_steps=10000
 run_name=from_scratch_replogle_flow
 lightning.logger.project=flow_perturb
-lightning.logger.name=replogle_flow_test
+lightning.logger.name=replogle_flow_MMD_no_OT
 sampling_eval.enabled=true
 sampling_eval.flow_steps=100
 "
