@@ -221,19 +221,14 @@ class FlowPlModel(pl.LightningModule):
             collect_covariates=False,
         )
         metric_prefix = "sampling_validation" if split == "validation" else f"sampling_{split}"
-        self.log(
-            f"{metric_prefix}_r2_epoch",
-            metrics["r2_metric"],
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            add_dataloader_idx=False,
-            rank_zero_only=True,
-        )
-        self.log(
-            f"{metric_prefix}_mmd_epoch",
-            metrics["mmd_metric"],
+        self.log_dict(
+            {
+                f"{metric_prefix}_fake_r2_epoch": metrics["fake_r2_metric"],
+                f"{metric_prefix}_delta_r2_epoch": metrics["delta_r2_metric"],
+                f"{metric_prefix}_ctrl_to_pert_r2_epoch": metrics["ctrl_to_pert_r2_metric"],
+                f"{metric_prefix}_mmd_epoch": metrics["mmd_metric"],
+                f"{metric_prefix}_ctrl_to_pert_mmd_epoch": metrics["ctrl_to_pert_mmd_metric"]
+            },
             on_step=False,
             on_epoch=True,
             prog_bar=True,

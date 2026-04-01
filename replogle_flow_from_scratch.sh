@@ -56,11 +56,11 @@ SCRATCH_REPLOGLE_EXTRA="
 data=replogle_finetune
 data.num_workers=16
 data.prefetch_factor=12
-trainer.val_check_interval=1.0
+trainer.val_check_interval=0.5
 lightning.callbacks.checkpoint.every_n_train_steps=10000
 run_name=from_scratch_replogle_flow
 lightning.logger.project=flow_perturb
-lightning.logger.name=replogle_flow_MMD_OT_exact
+lightning.logger.name=MMD_OT_exact_new_r2_v2
 sampling_eval.enabled=true
 sampling_eval.flow_steps=100
 "
