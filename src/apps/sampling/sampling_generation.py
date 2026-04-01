@@ -95,7 +95,11 @@ def sample_dataloader_batches(
     all_truths = []
     all_samples = []
     all_covariates = []
+    batch_fake_r2_metrics = []
+    batch_delta_r2_metrics = []
+    batch_ctrl_to_pert_r2_metrics = []
     batch_mmd_metrics = []
+    batch_ctrl_to_pert_mmd_metrics = []
     reference_col_genes = None
 
     np_state = np.random.get_state()
@@ -113,6 +117,7 @@ def sample_dataloader_batches(
 
         _genes = load_selected_genes(cfg)
         assert len(_genes) == 2000
+        mmd_loss = SamplesLoss(loss="energy", blur=0.05, scaling=0.5).to(device)
 
         with torch.no_grad():
             for batch_idx in range(num_sampled_batches):
@@ -130,7 +135,6 @@ def sample_dataloader_batches(
                     reference_col_genes = batch_data["col_genes"][0]
                 gene_emb = build_gene_embedding_cache(model, batch_data, device)
                 self_condition = build_self_condition(cfg, model, batch_data, gene_emb)
-                mmd_loss = SamplesLoss(loss="energy", blur=0.05, scaling=0.5).to(device)
                 mask = ~batch_data["is_padded_list"].bool()
                 batch_start_time = time.time()
 
@@ -145,34 +149,54 @@ def sample_dataloader_batches(
                 )
 
                 pert_emb = pert_emb[mask]
+                control_emb = batch_data["cont_emb"][mask]
                 if sample is not None:
                     sample = sample[mask]
 
                 pert_emb_cpu = pert_emb.detach().cpu()
                 sample_cpu = sample.detach().cpu()
+                control_cpu = control_emb.detach().cpu()
 
                 np_mask = np.isin(batch_data["col_genes"][0], _genes)
                 truth_np = pert_emb_cpu.numpy()[:, np_mask]
                 sample_np = sample_cpu.numpy()[:, np_mask]
+                control_np = control_cpu.numpy()[:, np_mask]
 
-                r2_metric = r2_score(truth_np.mean(0), sample_np.mean(0))
+                mu_ctrl = control_np.mean(axis=0)
+                mu_pert = truth_np.mean(axis=0)
+                mu_sample = sample_np.mean(axis=0)
+
+                delta_real = mu_pert - mu_ctrl
+                delta_pred = mu_sample - mu_ctrl
+
+                fake_r2_metric = r2_score(mu_pert, mu_sample)
+                delta_r2_metric = r2_score(delta_real, delta_pred)
+                ctrl_to_pert_r2_metric = r2_score(mu_ctrl, mu_pert)
                 torch_mask = torch.as_tensor(np_mask, device=device, dtype=torch.bool)
                 sample_eval = sample[:, torch_mask]
                 truth_eval = pert_emb[:, torch_mask]
+                control_eval = control_emb[:, torch_mask]
                 mmd_metric = mmd_loss(sample_eval, truth_eval).item()
+                ctrl_to_pert_mmd_metric = mmd_loss(control_eval, truth_eval).item()
                 batch_time = time.time() - batch_start_time
 
-                logger.info(
-                    "Batch %s completed in %.2fs, r2_metric for this batch: %s, mmd_metric for this batch: %s",
-                    batch_idx + 1,
-                    batch_time,
-                    r2_metric,
-                    mmd_metric,
-                )
+                # logger.info(
+                #     "Batch %s completed in %.2fs, fake_r2: %s, delta_r2: %s, mmd: %s, ctrl_to_pert_mmd: %s",
+                #     batch_idx + 1,
+                #     batch_time,
+                #     fake_r2_metric,
+                #     delta_r2_metric,
+                #     mmd_metric,
+                #     ctrl_to_pert_mmd_metric,
+                # )
 
                 all_truths.append(truth_np)
                 all_samples.append(sample_np)
+                batch_fake_r2_metrics.append(fake_r2_metric)
+                batch_delta_r2_metrics.append(delta_r2_metric)
+                batch_ctrl_to_pert_r2_metrics.append(ctrl_to_pert_r2_metric)
                 batch_mmd_metrics.append(mmd_metric)
+                batch_ctrl_to_pert_mmd_metrics.append(ctrl_to_pert_mmd_metric)
 
                 if collect_covariates:
                     all_covariates.extend(collect_batch_covariates(batch_data, dataloader, datamodule, mask))
@@ -188,14 +212,22 @@ def sample_dataloader_batches(
     all_truths = np.concatenate(all_truths, axis=0)
     all_samples = np.concatenate(all_samples, axis=0)
     overall_r2 = r2_score(all_truths.mean(0), all_samples.mean(0))
+    mean_fake_r2 = float(np.mean(batch_fake_r2_metrics)) if batch_fake_r2_metrics else float("nan")
+    mean_delta_r2 = float(np.mean(batch_delta_r2_metrics)) if batch_delta_r2_metrics else float("nan")
+    mean_ctrl_to_pert_r2 = float(np.mean(batch_ctrl_to_pert_r2_metrics)) if batch_ctrl_to_pert_r2_metrics else float("nan")
     mean_mmd = float(np.mean(batch_mmd_metrics)) if batch_mmd_metrics else float("nan")
+    mean_ctrl_to_pert_mmd = float(np.mean(batch_ctrl_to_pert_mmd_metrics)) if batch_ctrl_to_pert_mmd_metrics else float("nan")
 
     return {
         "truths": all_truths,
         "samples": all_samples,
         "covariates": all_covariates,
         "r2_metric": overall_r2,
+        "fake_r2_metric": mean_fake_r2,
+        "delta_r2_metric": mean_delta_r2,
+        "ctrl_to_pert_r2_metric": mean_ctrl_to_pert_r2,
         "mmd_metric": mean_mmd,
+        "ctrl_to_pert_mmd_metric": mean_ctrl_to_pert_mmd,
         "reference_col_genes": reference_col_genes,
     }
 

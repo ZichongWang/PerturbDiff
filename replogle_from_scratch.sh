@@ -62,11 +62,11 @@ SCRATCH_REPLOGLE_EXTRA="
 data=replogle_finetune
 data.num_workers=16
 data.prefetch_factor=12
-trainer.val_check_interval=0.1
+trainer.val_check_interval=0.5
 lightning.callbacks.checkpoint.every_n_train_steps=10000
 run_name=from_scratch_replogle
 lightning.logger.project=diffusion_pertub
-lightning.logger.name=replogle_check
+lightning.logger.name=new_metrics_v1
 "
 
 CKPT_NAMING="
