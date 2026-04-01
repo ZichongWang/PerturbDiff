@@ -35,9 +35,9 @@ cov_encoding.replogle_gene_encoding=genept
 "
 
 OT_RELATED="
-model.pairing_strategy=ot_sinkhorn
+model.pairing_strategy=ot_exact
 model.ot_cost=l2_squared
-model.ot_reg=0.05
+model.ot_reg=0.1
 model.ot_num_iters=200
 model.ot_sampling=row_multinomial
 model.ot_return_coupling=false
@@ -60,7 +60,7 @@ trainer.val_check_interval=1.0
 lightning.callbacks.checkpoint.every_n_train_steps=10000
 run_name=from_scratch_replogle_flow
 lightning.logger.project=flow_perturb
-lightning.logger.name=replogle_flow_MMD_no_OT
+lightning.logger.name=replogle_flow_MMD_OT_exact
 sampling_eval.enabled=true
 sampling_eval.flow_steps=100
 "
@@ -85,4 +85,5 @@ $COMMON_REPLOGLE_TRAIN \
 $SCRATCH_REPLOGLE_EXTRA \
 $FAKE_BATCH \
 $CKPT_NAMING \
+$OT_RELATED \
 "$@"

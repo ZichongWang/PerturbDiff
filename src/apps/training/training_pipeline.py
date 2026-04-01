@@ -1,6 +1,10 @@
 """Train/validate run pipeline split from rawdata_diffusion_training.py (logic-preserving)."""
 
+from pathlib import Path
+
 import torch
+
+from src.common.utils import ensure_writable_directory
 
 
 def run_pipeline(trainer, model, datamodule, cfg, logger):
@@ -19,8 +23,10 @@ def run_pipeline(trainer, model, datamodule, cfg, logger):
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.model.ckpt_path)
         if torch.distributed.is_initialized():
             torch.distributed.barrier()
-        logger.info(f"Saving final model weights to {cfg.save_dir_path}")
-        trainer.save_checkpoint(cfg.save_dir_path, weights_only=True)
+        save_dir = Path(ensure_writable_directory(cfg.save_dir_path))
+        final_ckpt_path = save_dir / "final.ckpt"
+        logger.info(f"Saving final model weights to {final_ckpt_path}")
+        trainer.save_checkpoint(str(final_ckpt_path), weights_only=True)
         logger.info("Finished saving final model")
         if torch.distributed.is_initialized():
             torch.distributed.barrier()

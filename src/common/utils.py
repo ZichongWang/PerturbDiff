@@ -1,8 +1,10 @@
 """Module `common/utils.py`."""
 import os
 import sys
+import stat
 import warnings
 import random
+from pathlib import Path
 from pandas.errors import SettingWithCopyWarning
 
 warnings.simplefilter("ignore", UserWarning)
@@ -30,6 +32,48 @@ plt.rcParams['font.family'] = 'Times New Roman'
 from matplotlib import rcParams
 from sklearn.manifold import TSNE
 import seaborn as sns
+
+def _ensure_owner_directory_access(path: Path) -> None:
+    """Add user rwx bits to an existing directory when the current user owns it."""
+    path = Path(path)
+    if not path.exists():
+        return
+    if not path.is_dir():
+        raise NotADirectoryError(f"Expected a directory path, got '{path}'.")
+
+    path_stat = path.stat()
+    if path_stat.st_uid == os.getuid():
+        required_mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR
+        updated_mode = path_stat.st_mode | required_mode
+        if updated_mode != path_stat.st_mode:
+            os.chmod(path, updated_mode)
+
+
+def ensure_writable_directory(path) -> str:
+    """
+    Ensure a directory exists and is traversable/writable by the current user.
+
+    If an existing owner-owned directory is missing user execute or write bits,
+    repair those permissions before creating children under it.
+    """
+    target = Path(path).expanduser()
+
+    for parent in reversed((target, *target.parents)):
+        if parent.exists():
+            _ensure_owner_directory_access(parent)
+
+    target.mkdir(parents=True, exist_ok=True)
+    _ensure_owner_directory_access(target)
+
+    if not os.access(target, os.W_OK | os.X_OK):
+        target_stat = target.stat()
+        raise PermissionError(
+            f"Directory '{target}' is not writable/traversable for uid={os.getuid()} "
+            f"(mode={oct(target_stat.st_mode & 0o777)} owner_uid={target_stat.st_uid})."
+        )
+
+    return str(target)
+
 
 def get_short_dsname(ds_name):
     """Execute `get_short_dsname` and return values used by downstream logic."""
@@ -138,8 +182,17 @@ def setup_loggings(cfg):
         f"and {torch.cuda.device_count()} devices per-node"
     )
 
-    # set save directory path
-    cfg.save_dir_path = os.path.join(cfg.trainer.default_root_dir, cfg.run_name)
+    # set and validate output directories early so Lightning does not fail mid-run
+    cfg.trainer.default_root_dir = ensure_writable_directory(cfg.trainer.default_root_dir)
+    cfg.save_dir_path = ensure_writable_directory(os.path.join(cfg.trainer.default_root_dir, cfg.run_name))
+
+    checkpoint_dir = getattr(cfg.lightning.callbacks.checkpoint, "dirpath", None)
+    if checkpoint_dir:
+        cfg.lightning.callbacks.checkpoint.dirpath = ensure_writable_directory(checkpoint_dir)
+
+    logger_save_dir = getattr(cfg.lightning.logger, "save_dir", None)
+    if logger_save_dir:
+        cfg.lightning.logger.save_dir = ensure_writable_directory(logger_save_dir)
 
     return logger
 

@@ -70,6 +70,7 @@ def _pair_ot_sinkhorn(
     for batch_idx in range(batch_size):
         # Rows index perturbed cells and columns index control cells.
         cost = torch.cdist(pert_emb[batch_idx], control_emb[batch_idx], p=2) ** 2
+        cost = cost / cost.mean()
         coupling = ot.sinkhorn(
             uniform_mass,
             uniform_mass,
@@ -91,6 +92,38 @@ def _pair_ot_sinkhorn(
         metadata["coupling"] = torch.stack(couplings, dim=0)
     return paired_controls, metadata
 
+def _pair_ot_exact(
+    control_emb: torch.Tensor,
+    pert_emb: torch.Tensor,
+    ot_cost: str,
+):
+    if ot_cost != "l2_squared":
+        raise NotImplementedError(f"Unsupported OT cost: {ot_cost}")
+    batch_size, set_size, gene_dim = control_emb.shape
+    _ = gene_dim
+    uniform_mass = torch.full((set_size,), 1.0 / float(set_size), device=control_emb.device, dtype=control_emb.dtype)
+
+    sampled_indices = []
+    paired_controls = []
+    for batch_idx in range(batch_size):
+        # Rows index perturbed cells and columns index control cells.
+        cost = torch.cdist(pert_emb[batch_idx], control_emb[batch_idx], p=2) ** 2
+        cost = cost / cost.mean()
+        coupling = ot.emd(
+            uniform_mass,
+            uniform_mass,
+            cost
+        )
+        indices = _sample_from_row_distribution(coupling)
+        sampled_indices.append(indices)
+        paired_controls.append(control_emb[batch_idx].index_select(0, indices))
+
+    sampled_indices = torch.stack(sampled_indices, dim=0)
+    paired_controls = torch.stack(paired_controls, dim=0)
+    metadata = {"indices": sampled_indices}
+    return paired_controls, metadata
+    
+    
 
 def pair_control_within_set(
     control_emb: torch.Tensor,
@@ -128,6 +161,12 @@ def pair_control_within_set(
             ot_num_iters=ot_num_iters,
             ot_sampling=ot_sampling,
             return_coupling=return_coupling,
+        )
+    if strategy == "ot_exact":
+        return _pair_ot_exact(
+            control_emb,
+            pert_emb,
+            ot_cost=ot_cost,
         )
     raise NotImplementedError(f"Unsupported flow pairing strategy: {strategy}")
 
