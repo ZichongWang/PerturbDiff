@@ -1,4 +1,4 @@
-# Rectified-flow model and backbone defaults
+# Rectified-flow model and backbone defaults for Gaussian-x0 flow matching
 
 ckpt_path: null # Lightning checkpoint path used to resume trainer.fit or trainer.validate.
 model_type: "Cross_DiT" # Backbone architecture used to predict the flow velocity field.
@@ -17,14 +17,8 @@ class_emb_hidden_dimension: ${..cov_encoding.hidden_dim} # Shared hidden size us
 use_gene_embedding: False # Enable pretrained gene embeddings when true.
 gene_embedding_type: "linear" # Projection type used when gene embeddings are enabled.
 p_drop_cond: 0.1 # Probability of dropping batch conditioning during training for classifier-free guidance.
-p_drop_control: 0.1 # Probability of zeroing the control branch input during training.
+p_drop_control: 0.1 # Probability of zeroing the real-control branch input during training.
 enable_self_condition: false # Double first-layer input width and reuse predicted endpoints when true.
-pairing_strategy: "within_set_random" # or ot_sinkhorn
-ot_cost: "l2_squared" # OT cost used by model.pairing_strategy=ot_sinkhorn; currently only squared L2 is supported.
-ot_reg: 0.05 # Entropic regularization strength used by Sinkhorn OT when pairing_strategy=ot_sinkhorn.
-ot_num_iters: 200 # Maximum Sinkhorn iterations used to solve OT inside each cell set.
-ot_sampling: "row_multinomial" # Sampling rule that converts each OT coupling row into one paired control index.
-ot_return_coupling: false # Return full OT couplings in pairing metadata for debugging when true.
 steps: 1000 # Time-embedding scale used to map continuous flow time into the backbone timestep range.
 use_class_silu: false # Apply SiLU after adding timestep and class embeddings when true.
 separate_embedder: false # Use dataset-specific input embedders when true.

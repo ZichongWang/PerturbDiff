@@ -54,6 +54,11 @@ class RectifiedFlow(
             th.cat([control_input_t, control_self_condition], dim=-1),
         )
 
+    @staticmethod
+    def sample_base_state(reference):
+        """Sample the Gaussian flow start state x0 with the same shape as `reference`."""
+        return th.randn_like(reference)
+
     def velocity_to_endpoint(self, x_t, velocity, t):
         """Convert a velocity prediction into a terminal point estimate."""
         return x_t + (1.0 - self._expand_time(t, x_t)) * velocity

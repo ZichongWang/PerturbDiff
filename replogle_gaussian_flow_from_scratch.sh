@@ -34,9 +34,6 @@ optimization.optimizer.lr=0.0003
 cov_encoding.replogle_gene_encoding=genept
 "
 
-
-
-
 COMMON_SCRATCH_DATA="
 cov_encoding.celltype_encoding=llm
 model.p_drop_control=0
@@ -49,9 +46,9 @@ data.num_workers=16
 data.prefetch_factor=12
 trainer.val_check_interval=0.5
 lightning.callbacks.checkpoint.every_n_train_steps=10000
-run_name=from_scratch_replogle_flow
-lightning.logger.project=flow_perturb
-lightning.logger.name=gaussian_flow_replogle
+run_name=from_scratch_replogle_gaussian_flow
+lightning.logger.project=perturb_flow_gaussian
+lightning.logger.name=v1
 sampling_eval.enabled=true
 sampling_eval.flow_steps=100
 "

@@ -85,6 +85,9 @@ def sample_flow_dataloader_batches(
 
     logger.info("Generating %s flow samples with %s Euler steps", num_samples, flow_steps)
 
+    all_truths = []
+    all_samples = []
+    all_covariates = []
     batch_fake_r2_metrics = []
     batch_delta_r2_metrics = []
     batch_ctrl_to_pert_r2_metrics = []
@@ -125,10 +128,11 @@ def sample_flow_dataloader_batches(
                 
                 mask = ~batch_data["is_padded_list"].bool()
                 batch_start_time = time.time()
+                x0 = flow.sample_base_state(control_emb)
 
                 sample, _traj = flow.sample_euler_loop(
                     model.model,
-                    x_start=control_emb,
+                    x_start=x0,
                     control_input_start=control_emb,
                     self_condition=self_condition,
                     flow_steps=flow_steps,
@@ -184,6 +188,12 @@ def sample_flow_dataloader_batches(
                 batch_ctrl_to_pert_r2_metrics.append(ctrl_to_pert_r2)
                 batch_ctrl_to_pert_mmd_metrics.append(ctrl_to_pert_mmd_metric)
 
+                all_truths.append(pert_np)
+                all_samples.append(sample_np)
+
+                if collect_covariates:
+                    all_covariates.extend(collect_batch_covariates(batch_data, dataloader, datamodule, mask))
+
     finally:
         np.random.set_state(np_state)
         torch.set_rng_state(torch_state)
@@ -194,6 +204,9 @@ def sample_flow_dataloader_batches(
             model.train()
 
 
+    all_truths = np.concatenate(all_truths, axis=0) if all_truths else np.empty((0, 0))
+    all_samples = np.concatenate(all_samples, axis=0) if all_samples else np.empty((0, 0))
+    overall_r2 = float(r2_score(all_truths.mean(0), all_samples.mean(0))) if all_truths.size and all_samples.size else float("nan")
     mean_mmd = float(np.mean(batch_mmd_metrics)) if batch_mmd_metrics else float("nan")
     mean_fake_r2 = float(np.mean(batch_fake_r2_metrics)) if batch_fake_r2_metrics else float("nan")
     mean_delta_r2 = float(np.mean(batch_delta_r2_metrics)) if batch_delta_r2_metrics else float("nan")
@@ -201,6 +214,11 @@ def sample_flow_dataloader_batches(
     mean_ctrl_to_pert_mmd = float(np.mean(batch_ctrl_to_pert_mmd_metrics)) if batch_ctrl_to_pert_mmd_metrics else float("nan")
 
     return {
+        "truths": all_truths,
+        "samples": all_samples,
+        "covariates": all_covariates,
+        "reference_col_genes": reference_col_genes,
+        "r2_metric": overall_r2,
         "fake_r2_metric": mean_fake_r2,
         "delta_r2_metric": mean_delta_r2,
         "ctrl_to_pert_r2_metric": mean_ctrl_to_pert_r2,

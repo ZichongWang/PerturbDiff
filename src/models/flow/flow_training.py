@@ -3,8 +3,6 @@
 import torch as th
 from geomloss import SamplesLoss
 
-from src.models.flow.pairing import pair_control_within_set
-
 
 def mean_flat(tensor):
     """
@@ -96,29 +94,19 @@ class RectifiedFlowTrainingMixin:
         if MMD_loss_fn is None:
             MMD_loss_fn = SamplesLoss(loss="energy", blur=0.05)
 
-        paired_x0, pairing_metadata = pair_control_within_set(
-            control_input_start,
-            x_start,
-            strategy=getattr(self.model_cfg, "pairing_strategy", "within_set_random"),
-            ot_cost=getattr(self.model_cfg, "ot_cost", "l2_squared"),
-            ot_reg=float(getattr(self.model_cfg, "ot_reg", 0.05)),
-            ot_num_iters=int(getattr(self.model_cfg, "ot_num_iters", 200)),
-            ot_sampling=getattr(self.model_cfg, "ot_sampling", "row_multinomial"),
-            return_coupling=bool(getattr(self.model_cfg, "ot_return_coupling", False)),
-        )
-
         t = th.rand(x_start.shape[0], device=x_start.device, dtype=x_start.dtype).clamp(max=1.0 - 1e-6)
         t_expanded = self._expand_time(t, x_start)
-        x_t = (1.0 - t_expanded) * paired_x0 + t_expanded * x_start
-        target_velocity = x_start - paired_x0
+        x0 = self.sample_base_state(x_start)
+        x_t = (1.0 - t_expanded) * x0 + t_expanded * x_start
+        target_velocity = x_start - x0
 
-        control_input_t = paired_x0
+        control_input_t = control_input_start
         if model.model_cfg.p_drop_control > 0.0 and th.rand(1, device=x_start.device) < model.model_cfg.p_drop_control:
             control_input_t = th.zeros_like(control_input_t)
 
         working_self_condition = self._clone_self_condition(self_condition)
         if working_self_condition is not None:
-            working_self_condition["cont_emb"] = paired_x0
+            working_self_condition["cont_emb"] = control_input_start
             if p_drop_cond > 0.0 and th.rand(1, device=x_start.device) < p_drop_cond:
                 working_self_condition["batch_emb"] = None
 

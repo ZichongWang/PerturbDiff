@@ -84,7 +84,7 @@ class RectifiedFlowSamplingMixin:
         Integrate the flow ODE with a fixed-step Euler solver.
 
         :param model: Velocity model.
-        :param x_start: Initial state x(0), typically the control cells.
+        :param x_start: Initial state x(0), sampled from Gaussian noise.
         :param control_input_start: Fixed control branch input tensor.
         :param self_condition: Conditioning inputs for the model.
         :param flow_steps: Number of Euler steps from t=0 to t=1.
