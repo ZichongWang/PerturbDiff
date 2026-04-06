@@ -62,7 +62,8 @@ run_name=from_scratch_replogle_flow
 lightning.logger.project=flow_perturb
 lightning.logger.name=MMD_OT_exact_new_r2_v2
 sampling_eval.enabled=true
-sampling_eval.flow_steps=100
+sampling_eval.flow_steps=500
+sampling_eval.guidance_strength=0.2
 "
 
 CKPT_NAMING="

@@ -37,7 +37,7 @@ OVERRIDES=(
   "data.skip_cached_indices=true"
   "model_checkpoint_path='${CKPT_PATH}'"
   "sampling.num_sampled_batches=4"
-  "sampling.flow_steps=8"
+  "sampling.flow_steps=100"
   "sampling.guidance_strength=1.0"
   "sampling.progress=true"
 )
