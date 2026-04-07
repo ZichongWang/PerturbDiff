@@ -16,10 +16,10 @@ class_emb_gather_strategy: ${..cov_encoding.gather_strategy} # Shared covariate 
 class_emb_hidden_dimension: ${..cov_encoding.hidden_dim} # Shared hidden size used by the covariate/class embedding pathway.
 use_gene_embedding: False # Enable pretrained gene embeddings when true.
 gene_embedding_type: "linear" # Projection type used when gene embeddings are enabled.
-p_drop_cond: 0.1 # Probability of dropping batch conditioning during training for classifier-free guidance.
+p_drop_cond: 0.2 # Probability of dropping batch conditioning during training for classifier-free guidance.
 p_drop_control: 0.1 # Probability of zeroing the control branch input during training.
 enable_self_condition: false # Double first-layer input width and reuse predicted endpoints when true.
-pairing_strategy: "within_set_random" # or ot_sinkhorn
+pairing_strategy: "within_set_random" # or ot_sinkhorn, or ot_exact
 ot_cost: "l2_squared" # OT cost used by model.pairing_strategy=ot_sinkhorn; currently only squared L2 is supported.
 ot_reg: 0.05 # Entropic regularization strength used by Sinkhorn OT when pairing_strategy=ot_sinkhorn.
 ot_num_iters: 200 # Maximum Sinkhorn iterations used to solve OT inside each cell set.

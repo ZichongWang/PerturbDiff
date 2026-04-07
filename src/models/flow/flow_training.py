@@ -60,7 +60,7 @@ class RectifiedFlowTrainingMixin:
         assert gamma >= 0.0, "optimization.mmd_weight_gamma must be non-negative."
         if alpha == 0.0:
             return th.zeros_like(t)
-        denominator = (1.0 - t).clamp_min(1e-6)
+        denominator = (1.0 - t).clamp_min(1e-3)
         return alpha * th.pow(t, gamma) / denominator
 
     def training_losses(

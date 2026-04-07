@@ -8,7 +8,7 @@ trainer.use_distributed_sampler=false
 data.normalize_counts=10
 trainer.max_steps=200000
 lightning.callbacks.checkpoint.save_top_k=-1
-trainer.limit_val_batches=16
+trainer.limit_val_batches=32
 lightning.ema.decay=0.99
 lightning.ema.update_steps=10
 cov_encoding.batch_encoding=onehot
@@ -23,7 +23,7 @@ model.input_dim=2000
 data.embed_key=X_hvg
 model.output_activation=identity
 model.enable_self_condition=true
-optimization.mmd_weight_alpha=1.0
+optimization.mmd_weight_alpha=0.0
 optimization.mmd_weight_gamma=0.0
 "
 
@@ -43,9 +43,6 @@ model.ot_sampling=row_multinomial
 model.ot_return_coupling=false
 "
 
-
-
-
 COMMON_SCRATCH_DATA="
 cov_encoding.celltype_encoding=llm
 model.p_drop_control=0
@@ -56,14 +53,14 @@ SCRATCH_REPLOGLE_EXTRA="
 data=replogle_finetune
 data.num_workers=16
 data.prefetch_factor=12
-trainer.val_check_interval=0.5
+trainer.val_check_interval=1.0
 lightning.callbacks.checkpoint.every_n_train_steps=10000
 run_name=from_scratch_replogle_flow
 lightning.logger.project=flow_perturb
-lightning.logger.name=MMD_OT_exact_new_r2_v2
+lightning.logger.name=woMMD_OT
 sampling_eval.enabled=true
 sampling_eval.flow_steps=500
-sampling_eval.guidance_strength=0.2
+sampling_eval.guidance_strength=0.5
 "
 
 CKPT_NAMING="
@@ -78,7 +75,7 @@ data.perturbseq_batch_col=fake_batch
 data.skip_cached_indices=true
 "
 
-CUDA_VISIBLE_DEVICES=${VISIBLE_DEVICES:-0} python ./src/apps/run/rawdata_flow_training.py \
+CUDA_VISIBLE_DEVICES=0 python ./src/apps/run/rawdata_flow_training.py \
 $COMMON_TRAIN_RUNTIME \
 $COMMON_MODEL_2000 \
 $COMMON_SCRATCH_DATA \
