@@ -18,7 +18,7 @@ save_dir_path: null # automatically filled as "{trainer.default_root_dir}/{run_n
 sampling_eval:
   enabled: true
   split: validation
-  num_batches: 4
+  num_batches: 16
   use_ddim: true
   clip_denoised: true
   guidance_strength: 1.0
