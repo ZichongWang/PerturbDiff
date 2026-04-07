@@ -1,6 +1,7 @@
 """Module `data/dataset_core.py`."""
 import ctypes
 import ctypes.util
+import hashlib
 from logging import Logger
 from typing import Any, Dict, List, Tuple
 
@@ -118,11 +119,26 @@ def collate_fn(dataset, batch):
     }
 
 
+def _build_eval_mapping_rng(dataset, ds_name: str, local_idx: int):
+    """Build a per-sample RNG so eval pairing does not depend on access order."""
+    seed_bytes = hashlib.blake2b(
+        f"{dataset.seed}:{dataset.stage}:{ds_name}:{local_idx}".encode("utf-8"),
+        digest_size=8,
+    ).digest()
+    return np.random.default_rng(int.from_bytes(seed_bytes, byteorder="little", signed=False))
+
+
 def mapping_cells(dataset, ds_name, local_idx):
     """Execute `mapping_cells` and return values used by downstream logic."""
     assert dataset.data_args.mapping_strategy == "random"
-    randint = lambda high: int(np.random.randint(0, high, size=(1))[0])
-    choice = lambda arr: np.random.choice(arr, 1)[0]
+    use_deterministic_eval_pairing = dataset.stage != "train" and dataset.data_args.use_fixed_pairing
+    if use_deterministic_eval_pairing:
+        rng = _build_eval_mapping_rng(dataset, ds_name, local_idx)
+        randint = lambda high: int(rng.integers(high))
+        choice = lambda arr: arr[int(rng.integers(len(arr)))]
+    else:
+        randint = lambda high: int(np.random.randint(0, high, size=(1))[0])
+        choice = lambda arr: np.random.choice(arr, 1)[0]
 
     cache = dataset.meta_cache._cache[dataset.dataset_path_map[ds_name]]
 
@@ -260,6 +276,7 @@ class H5adSentenceDataset(Dataset):
     def __init__(
         self,
         stage: str,
+        seed: int,
         meta_cache: GlobalH5MetadataCache,
         dataset_path_map: Dict[str, str],
         selected_genes_list: Dict[str, list],
@@ -273,6 +290,7 @@ class H5adSentenceDataset(Dataset):
         Initialize the class instance.
 
         :param stage: Input `stage` value.
+        :param seed: Input `seed` value.
         :param meta_cache: Input `meta_cache` value.
         :param dataset_path_map: Input `dataset_path_map` value.
         :param selected_genes_list: List of values used in this step.
@@ -288,6 +306,7 @@ class H5adSentenceDataset(Dataset):
         control_type: a dict for each dataset, specify the perturbation label for control cell
         """
         self.stage = stage
+        self.seed = int(seed)
         self.meta_cache = meta_cache
         self.data_indices = data_indices
         self.num_cell = num_cell

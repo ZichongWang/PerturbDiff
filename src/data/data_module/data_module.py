@@ -93,14 +93,14 @@ def build_val_dataloaders(dm):
         if dist.is_initialized() and dm.data_args.use_fixed_pairing:
             sampler = DistributedCellSetFixPairingBatchSampler(
                 cur_dataset,
-                shuffle=False,
+                shuffle=True,
                 drop_last=True,
                 seed=dm.seed,
             )
         else:
             sampler = CellSetBatchSampler(
                 cur_dataset,
-                shuffle=False,
+                shuffle=True,
                 seed=dm.seed,
             )
 

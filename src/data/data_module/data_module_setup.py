@@ -80,6 +80,7 @@ def pretraining_setup_dataset(dm, stage=None):
             f"{split_stage}_dataset",
             H5adSentenceDataset(
                 split_stage,
+                dm.seed,
                 meta_cache,
                 dataset_path_map,
                 selected_genes_list,
@@ -304,6 +305,7 @@ def perturbation_pretraining_setup_dataset(dm, stage=None):
             f"{split_stage}_dataset",
             H5adSentenceDataset(
                 split_stage,
+                dm.seed,
                 meta_cache,
                 dataset_path_map,
                 selected_genes_list,
