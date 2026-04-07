@@ -16,7 +16,7 @@ class RectifiedFlowSamplingMixin:
         ret["batch_emb"] = None
         return ret
 
-    def predict_velocity(
+    def predict_x1(
         self,
         model,
         x_t,
@@ -28,17 +28,17 @@ class RectifiedFlowSamplingMixin:
         model_kwargs=None,
     ):
         """
-        Predict velocity at the current state and time.
+        Predict the terminal state x1 at the current state and time.
 
-        :param model: Velocity model.
+        :param model: Endpoint model.
         :param x_t: Current state tensor.
         :param control_input_t: Control branch input tensor.
         :param t: Continuous time tensor in [0, 1).
         :param self_condition: Conditioning inputs for the model.
-        :param guidance_strength: Classifier-free guidance scale in velocity space.
-        :param endpoint_estimate: Optional self-conditioned endpoint estimate.
+        :param guidance_strength: Classifier-free guidance scale in endpoint space.
+        :param endpoint_estimate: Optional self-conditioned x1 estimate.
         :param model_kwargs: Extra kwargs forwarded to the model.
-        :return: Velocity tensor.
+        :return: Predicted terminal point.
         """
         if model_kwargs is None:
             model_kwargs = {}
@@ -52,7 +52,7 @@ class RectifiedFlowSamplingMixin:
             model_kwargs=model_kwargs,
             endpoint_estimate=endpoint_estimate,
         )
-        velocity = output["x"]
+        x1_pred = output["x"]
 
         if self_condition is not None and guidance_strength != 0.0:
             uncond_output = self.get_model_output(
@@ -64,9 +64,9 @@ class RectifiedFlowSamplingMixin:
                 model_kwargs=model_kwargs,
                 endpoint_estimate=endpoint_estimate,
             )
-            velocity = (1.0 + guidance_strength) * velocity - guidance_strength * uncond_output["x"]
+            x1_pred = (1.0 + guidance_strength) * x1_pred - guidance_strength * uncond_output["x"]
 
-        return velocity
+        return x1_pred
 
     def sample_euler_loop(
         self,
@@ -83,12 +83,12 @@ class RectifiedFlowSamplingMixin:
         """
         Integrate the flow ODE with a fixed-step Euler solver.
 
-        :param model: Velocity model.
+        :param model: Endpoint model.
         :param x_start: Initial state x(0), typically the control cells.
         :param control_input_start: Fixed control branch input tensor.
         :param self_condition: Conditioning inputs for the model.
         :param flow_steps: Number of Euler steps from t=0 to t=1.
-        :param guidance_strength: Classifier-free guidance scale in velocity space.
+        :param guidance_strength: Classifier-free guidance scale in endpoint space.
         :param clip_denoised: Whether to clip only the final generated counts.
         :param progress: Whether to show a progress bar.
         :param model_kwargs: Extra kwargs forwarded to the model.
@@ -109,7 +109,7 @@ class RectifiedFlowSamplingMixin:
         for step_idx in iterator:
             t_value = step_idx / float(flow_steps)
             t = th.full((sample.shape[0],), t_value, device=sample.device, dtype=sample.dtype)
-            velocity = self.predict_velocity(
+            x1_pred = self.predict_x1(
                 model=model,
                 x_t=sample,
                 control_input_t=control_input_start,
@@ -119,8 +119,9 @@ class RectifiedFlowSamplingMixin:
                 endpoint_estimate=endpoint_estimate,
                 model_kwargs=model_kwargs,
             )
+            velocity = self.endpoint_to_velocity(sample, x1_pred, t)
             if getattr(model.model_cfg, "enable_self_condition", False):
-                endpoint_estimate = self.velocity_to_endpoint(sample, velocity, t)
+                endpoint_estimate = x1_pred
             sample = sample + dt * velocity
 
         sample = self.clip_terminal_sample(sample, clip_denoised=clip_denoised)

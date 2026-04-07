@@ -30,15 +30,15 @@ class RectifiedFlowTrainingMixin:
         endpoint_estimate=None,
     ):
         """
-        Run Cross_DiT once at continuous time `t` and return branch outputs.
+        Run Cross_DiT once at continuous time `t` and return endpoint predictions.
 
-        :param model: Velocity model.
+        :param model: Endpoint model.
         :param x_t: Interpolated state tensor.
         :param control_input_t: Control branch input tensor.
         :param t: Continuous time tensor in [0, 1).
         :param self_condition: Conditioning inputs for the model.
         :param model_kwargs: Extra kwargs forwarded to the model.
-        :param endpoint_estimate: Optional self-conditioned endpoint estimate.
+        :param endpoint_estimate: Optional self-conditioned x1 estimate.
         :return: Model output dictionary.
         """
         if model_kwargs is None:
@@ -55,13 +55,12 @@ class RectifiedFlowTrainingMixin:
 
     @staticmethod
     def _compute_mmd_weight(t, alpha, gamma):
-        """Compute the per-sample weighted-MMD factor alpha * t^gamma / (1 - t)."""
+        """Compute the per-sample weighted-MMD factor alpha * t^gamma."""
         assert alpha >= 0.0, "optimization.mmd_weight_alpha must be non-negative."
         assert gamma >= 0.0, "optimization.mmd_weight_gamma must be non-negative."
         if alpha == 0.0:
             return th.zeros_like(t)
-        denominator = (1.0 - t).clamp_min(1e-3)
-        return alpha * th.pow(t, gamma) / denominator
+        return alpha * th.pow(t, gamma)
 
     def training_losses(
         self,
@@ -79,7 +78,7 @@ class RectifiedFlowTrainingMixin:
         """
         Prepare flow-matching inputs and compute losses for one batch.
 
-        :param model: Velocity model.
+        :param model: Endpoint model.
         :param x_start: Ground-truth perturbed cells.
         :param control_input_start: Ground-truth control cells.
         :param self_condition: Conditioning inputs for the model.
@@ -87,7 +86,7 @@ class RectifiedFlowTrainingMixin:
         :param p_drop_cond: Probability of dropping conditional batch embeddings.
         :param MMD_loss_fn: Optional MMD loss function override.
         :param mmd_weight_alpha: Non-negative alpha in the weighted-MMD term.
-        :param mmd_weight_gamma: Non-negative gamma in the weighted-MMD term.
+        :param mmd_weight_gamma: Non-negative gamma exponent in the weighted-MMD term.
         :param return_model_output: Whether to also return raw model outputs.
         :return: Loss term dictionary, and optional model output dict.
         """
@@ -110,7 +109,7 @@ class RectifiedFlowTrainingMixin:
         t = th.rand(x_start.shape[0], device=x_start.device, dtype=x_start.dtype).clamp(max=1.0 - 1e-6)
         t_expanded = self._expand_time(t, x_start)
         x_t = (1.0 - t_expanded) * paired_x0 + t_expanded * x_start
-        target_velocity = x_start - paired_x0
+        target_x1 = x_start
 
         control_input_t = paired_x0
         if model.model_cfg.p_drop_control > 0.0 and th.rand(1, device=x_start.device) < model.model_cfg.p_drop_control:
@@ -137,7 +136,7 @@ class RectifiedFlowTrainingMixin:
                     model_kwargs=model_kwargs,
                     endpoint_estimate=None,
                 )
-            endpoint_estimate = self.velocity_to_endpoint(x_t, first_pass["x"], t)
+            endpoint_estimate = first_pass["x"]
 
         model_output = self.get_model_output(
             model=model,
@@ -148,11 +147,10 @@ class RectifiedFlowTrainingMixin:
             model_kwargs=model_kwargs,
             endpoint_estimate=endpoint_estimate,
         )
-        velocity_pred = model_output["x"]
-        x1_hat = self.velocity_to_endpoint(x_t, velocity_pred, t)
+        x1_pred = model_output["x"]
 
         terms = {}
-        mse = mean_flat((target_velocity - velocity_pred) ** 2)
+        mse = mean_flat((target_x1 - x1_pred) ** 2)
         if model.model_cfg.no_mse_loss:
             mse = th.zeros_like(mse)
         terms["mse"] = mse
@@ -161,7 +159,7 @@ class RectifiedFlowTrainingMixin:
             raw_mmd = th.zeros_like(mse)
             weighted_mmd = th.zeros_like(mse)
         else:
-            raw_mmd = MMD_loss_fn(x_start.type_as(x1_hat), x1_hat)
+            raw_mmd = MMD_loss_fn(x_start.type_as(x1_pred), x1_pred)
             weighted_mmd = raw_mmd * self._compute_mmd_weight(t, mmd_weight_alpha, mmd_weight_gamma).type_as(raw_mmd)
 
         terms["mmd_weighted"] = weighted_mmd

@@ -90,6 +90,9 @@ def sample_flow_dataloader_batches(
     batch_ctrl_to_pert_r2_metrics = []
     batch_mmd_metrics = []
     batch_ctrl_to_pert_mmd_metrics = []
+    all_truths = []
+    all_samples = []
+    all_covariates = []
     reference_col_genes = None
 
     np_state = np.random.get_state()
@@ -183,6 +186,11 @@ def sample_flow_dataloader_batches(
                 batch_delta_r2_metrics.append(delta_r2_metric)
                 batch_ctrl_to_pert_r2_metrics.append(ctrl_to_pert_r2)
                 batch_ctrl_to_pert_mmd_metrics.append(ctrl_to_pert_mmd_metric)
+                all_truths.append(pert_np)
+                all_samples.append(sample_np)
+
+                if collect_covariates:
+                    all_covariates.extend(collect_batch_covariates(batch_data, dataloader, datamodule, mask))
 
     finally:
         np.random.set_state(np_state)
@@ -199,13 +207,26 @@ def sample_flow_dataloader_batches(
     mean_delta_r2 = float(np.mean(batch_delta_r2_metrics)) if batch_delta_r2_metrics else float("nan")
     mean_ctrl_to_pert_r2 = float(np.mean(batch_ctrl_to_pert_r2_metrics)) if batch_ctrl_to_pert_r2_metrics else float("nan")
     mean_ctrl_to_pert_mmd = float(np.mean(batch_ctrl_to_pert_mmd_metrics)) if batch_ctrl_to_pert_mmd_metrics else float("nan")
+    overall_r2 = float("nan")
+    if all_truths and all_samples:
+        all_truths_np = np.concatenate(all_truths, axis=0)
+        all_samples_np = np.concatenate(all_samples, axis=0)
+        overall_r2 = r2_score(all_truths_np.mean(0), all_samples_np.mean(0))
+    else:
+        all_truths_np = np.empty((0, 0), dtype=np.float32)
+        all_samples_np = np.empty((0, 0), dtype=np.float32)
 
     return {
+        "truths": all_truths_np,
+        "samples": all_samples_np,
+        "covariates": all_covariates,
+        "r2_metric": overall_r2,
         "fake_r2_metric": mean_fake_r2,
         "delta_r2_metric": mean_delta_r2,
         "ctrl_to_pert_r2_metric": mean_ctrl_to_pert_r2,
         "mmd_metric": mean_mmd,
         "ctrl_to_pert_mmd_metric": mean_ctrl_to_pert_mmd,
+        "reference_col_genes": reference_col_genes,
     }
 
 

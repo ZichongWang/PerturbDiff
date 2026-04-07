@@ -23,6 +23,6 @@ sampling:
   flow_steps: 8 # Euler integration steps used from t=0 to t=1.
   clip_denoised: true # Zero final generated counts below model.cutoff after sampling.
   progress: true # Show a progress bar for Euler sampling.
-  guidance_strength: 1.0 # Classifier-free guidance scale applied in velocity space.
+  guidance_strength: 1.0 # Classifier-free guidance scale applied in x1 space before Euler integration.
   output_format: "npz" # Output format for saved predictions and truths.
   output_dir: null # Output directory; defaults to a run-specific folder when null.

@@ -42,7 +42,7 @@ class RectifiedFlow(
         return dict(self_condition)
 
     def _prepare_model_inputs(self, x_t, control_input_t, endpoint_estimate=None):
-        """Format model inputs based on whether self-conditioning is enabled."""
+        """Format model inputs based on whether endpoint self-conditioning is enabled."""
         if not getattr(self.model_cfg, "enable_self_condition", False):
             return x_t, control_input_t
 
@@ -54,12 +54,13 @@ class RectifiedFlow(
             th.cat([control_input_t, control_self_condition], dim=-1),
         )
 
-    def velocity_to_endpoint(self, x_t, velocity, t):
-        """Convert a velocity prediction into a terminal point estimate."""
-        return x_t + (1.0 - self._expand_time(t, x_t)) * velocity
+    def endpoint_to_velocity(self, x_t, endpoint, t):
+        """Convert a predicted terminal point into the corresponding flow velocity."""
+        denominator = (1.0 - self._expand_time(t, x_t)).clamp_min(1e-6)
+        return (endpoint - x_t) / denominator
 
     def clip_terminal_sample(self, sample, clip_denoised=True):
-        """Clip only the final generated counts, not the velocity field itself."""
+        """Clip only the final generated counts, not the intermediate x1 predictions."""
         if not clip_denoised:
             return sample
         return sample.masked_fill(sample < getattr(self.model_cfg, "cutoff", 0.0), 0)
