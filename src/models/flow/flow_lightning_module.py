@@ -124,6 +124,7 @@ class FlowPlModel(pl.LightningModule):
         assert self.model.model_name == "Cross_DiT"
         log_dict["training_MSE_loss_step"] = loss_dict["mse"].mean().detach()
         log_dict["training_MMD_loss_step"] = loss_dict["mmd_raw"].mean().detach()
+        log_dict["training_weighted_MMD_loss_step"] = loss_dict['mmd_weighted'].mean().detach()
 
         self.log_data(log_dict, train=True)
         return {"loss": loss}
@@ -227,7 +228,9 @@ class FlowPlModel(pl.LightningModule):
                 f"{metric_prefix}_delta_r2_epoch": metrics["delta_r2_metric"],
                 f"{metric_prefix}_ctrl_to_pert_r2_epoch": metrics["ctrl_to_pert_r2_metric"],
                 f"{metric_prefix}_mmd_epoch": metrics["mmd_metric"],
-                f"{metric_prefix}_ctrl_to_pert_mmd_epoch": metrics["ctrl_to_pert_mmd_metric"]
+                f"{metric_prefix}_ctrl_to_pert_mmd_epoch": metrics["ctrl_to_pert_mmd_metric"],
+                f"{metric_prefix}_delta_pearson_r": metrics['delta_pearson_r'],
+                f"{metric_prefix}_delta_MAE":metrics['delta_mae']
             },
             on_step=False,
             on_epoch=True,
