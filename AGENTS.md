@@ -4,7 +4,25 @@
 `src/apps/run/` contains the two CLI entrypoints: `rawdata_diffusion_training.py` and `rawdata_diffusion_sampling.py`. Keep those files thin. Put reusable workflow code in `src/apps/training/` and `src/apps/sampling/`, model code in `src/models/`, dataset and datamodule logic in `src/data/`, and shared helpers in `src/common/`. Hydra configs live under `configs/` and are grouped by concern (`data/`, `model/`, `trainer/`, `path/`, `lightning/`, `optimization/`, `cov_encoding/`). Static figures for the paper/site live in `asset/`; `index.html` backs the project page.
 
 ## Different branches
-This repo was forked from perturbdiff. The main branch is offical implementation, with slightly modification. It uses diffusion for generation. The branch `perturbflow` is a flow matching one implemented by me. I kept data, dataloader, NN and most things, only modification on loss function to match flow matching object.
+This repo was forked from perturbdiff. The main branch is offical implementation, with slightly modification. It uses diffusion for generation. The branch `perturbflow` is a flow matching one implemented by me. I kept data, dataloader, NN and most things, only modification on loss function to match flow matching object. You can always switch to different branchs to check the difference and compare, find problems. 
+
+The training script for flow matching is `replogle_flow_from_scratch.sh`, and for diffusion is `replogle_from_scratch.sh`.
+
+The current problem is training object is not consistent with actual object. In reality, what we care about is sampling quality, use R2, pearson delta r, MAE to measure. Now with training, training loss goes down, but those sampling metrics doesn't improve, sometimes even get worse. 
+
+Moreover, flow training is very unstable. Metrics like R2 sometimes suddenly drop very fast, to a very bad case, e.g. negative few thousand. Diffusion is much more stable, the metrics change monotonous.
+
+Another finding is the weight of NN. In wandb I find the weight of some layers would suddenly go up sometime, even at middle-stage of training, e.g. 50k steps.
+
+The weight of MMD is $\alpha t^\gamma / (1-t)$, that's because to calculate MMD, need $\hat x = x_t + (1-t) * \hat v$, thus need a factor of $1/(1-t)$(clamp to 1e3). OT pairing plan use exact_ot only have one positive number per row, so use sampling is equal to argmax.
+
+
+<!-- ## Research on Flow Matching
+I'm currently reasearching on flow matching and MMD loss. I try to let my model outperform the diffusion one. Please write what you think that can be improved, what's the current problem in [DEVELOP.md](DEVELOP.md). I will try to answer questions. Example:
+```
+1. Q: 
+
+``` -->
 
 ## Build, Test, and Development Commands
 There is no package build step; development is driven by Python entrypoints plus Hydra overrides.
