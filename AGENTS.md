@@ -3,6 +3,9 @@
 ## Project Structure & Module Organization
 `src/apps/run/` contains the two CLI entrypoints: `rawdata_diffusion_training.py` and `rawdata_diffusion_sampling.py`. Keep those files thin. Put reusable workflow code in `src/apps/training/` and `src/apps/sampling/`, model code in `src/models/`, dataset and datamodule logic in `src/data/`, and shared helpers in `src/common/`. Hydra configs live under `configs/` and are grouped by concern (`data/`, `model/`, `trainer/`, `path/`, `lightning/`, `optimization/`, `cov_encoding/`). Static figures for the paper/site live in `asset/`; `index.html` backs the project page.
 
+## Different branches
+This repo was forked from perturbdiff. The main branch is offical implementation, with slightly modification. It uses diffusion for generation. The branch `perturbflow` is a flow matching one implemented by me. I kept data, dataloader, NN and most things, only modification on loss function to match flow matching object.
+
 ## Build, Test, and Development Commands
 There is no package build step; development is driven by Python entrypoints plus Hydra overrides.
 
