@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from geomloss import SamplesLoss
 from pytorch_lightning.utilities import move_data_to_device
+from scipy import stats
 from sklearn.metrics import r2_score
 
 from src.apps.sampling.sampling_generation_helpers import (
@@ -93,6 +94,8 @@ def sample_flow_dataloader_batches(
     batch_ctrl_to_pert_r2_metrics = []
     batch_mmd_metrics = []
     batch_ctrl_to_pert_mmd_metrics = []
+    batch_pearson_metrics = []
+    batch_mae_metrics = []
     reference_col_genes = None
 
     np_state = np.random.get_state()
@@ -162,6 +165,8 @@ def sample_flow_dataloader_batches(
                 delta_real = mu_pert - mu_ctrl
                 delta_pred = mu_sample - mu_ctrl
 
+                pearson_metric = stats.pearsonr(delta_real, delta_pred).statistic
+                mae = np.mean(np.abs(delta_real - delta_pred))
                 fake_r2_metric = r2_score(mu_pert, mu_sample)
                 delta_r2_metric = r2_score(delta_real, delta_pred)
                 ctrl_to_pert_r2 = r2_score(mu_ctrl, mu_pert)
@@ -187,6 +192,8 @@ def sample_flow_dataloader_batches(
                 batch_delta_r2_metrics.append(delta_r2_metric)
                 batch_ctrl_to_pert_r2_metrics.append(ctrl_to_pert_r2)
                 batch_ctrl_to_pert_mmd_metrics.append(ctrl_to_pert_mmd_metric)
+                batch_pearson_metrics.append(pearson_metric)
+                batch_mae_metrics.append(mae)
 
                 all_truths.append(pert_np)
                 all_samples.append(sample_np)
@@ -212,6 +219,8 @@ def sample_flow_dataloader_batches(
     mean_delta_r2 = float(np.mean(batch_delta_r2_metrics)) if batch_delta_r2_metrics else float("nan")
     mean_ctrl_to_pert_r2 = float(np.mean(batch_ctrl_to_pert_r2_metrics)) if batch_ctrl_to_pert_r2_metrics else float("nan")
     mean_ctrl_to_pert_mmd = float(np.mean(batch_ctrl_to_pert_mmd_metrics)) if batch_ctrl_to_pert_mmd_metrics else float("nan")
+    mean_pearson_metric = float(np.mean(batch_pearson_metrics)) if batch_pearson_metrics else float("nan")
+    mean_mae_metric = float(np.mean(batch_mae_metrics)) if batch_mae_metrics else float("nan")
 
     return {
         "truths": all_truths,
@@ -224,6 +233,8 @@ def sample_flow_dataloader_batches(
         "ctrl_to_pert_r2_metric": mean_ctrl_to_pert_r2,
         "mmd_metric": mean_mmd,
         "ctrl_to_pert_mmd_metric": mean_ctrl_to_pert_mmd,
+        "delta_pearson_r": mean_pearson_metric,
+        "delta_mae": mean_mae_metric,
     }
 
 

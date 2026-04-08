@@ -227,7 +227,9 @@ class FlowPlModel(pl.LightningModule):
                 f"{metric_prefix}_delta_r2_epoch": metrics["delta_r2_metric"],
                 f"{metric_prefix}_ctrl_to_pert_r2_epoch": metrics["ctrl_to_pert_r2_metric"],
                 f"{metric_prefix}_mmd_epoch": metrics["mmd_metric"],
-                f"{metric_prefix}_ctrl_to_pert_mmd_epoch": metrics["ctrl_to_pert_mmd_metric"]
+                f"{metric_prefix}_ctrl_to_pert_mmd_epoch": metrics["ctrl_to_pert_mmd_metric"],
+                f"{metric_prefix}_delta_pearson_r": metrics["delta_pearson_r"],
+                f"{metric_prefix}_delta_MAE": metrics["delta_mae"],
             },
             on_step=False,
             on_epoch=True,
