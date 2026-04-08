@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from geomloss import SamplesLoss
 from pytorch_lightning.utilities import move_data_to_device
+from scipy import stats
 from sklearn.metrics import r2_score
 
 from src.apps.sampling.sampling_io import save_adata
@@ -100,6 +101,8 @@ def sample_dataloader_batches(
     batch_ctrl_to_pert_r2_metrics = []
     batch_mmd_metrics = []
     batch_ctrl_to_pert_mmd_metrics = []
+    batch_delta_pearson_metrics = []
+    batch_delta_mae_metrics = []
     reference_col_genes = None
 
     np_state = np.random.get_state()
@@ -169,6 +172,8 @@ def sample_dataloader_batches(
                 delta_real = mu_pert - mu_ctrl
                 delta_pred = mu_sample - mu_ctrl
 
+                delta_pearson_metric = stats.pearsonr(delta_real, delta_pred).statistic
+                delta_mae_metric = np.mean(np.abs(delta_real - delta_pred))
                 fake_r2_metric = r2_score(mu_pert, mu_sample)
                 delta_r2_metric = r2_score(delta_real, delta_pred)
                 ctrl_to_pert_r2_metric = r2_score(mu_ctrl, mu_pert)
@@ -197,6 +202,8 @@ def sample_dataloader_batches(
                 batch_ctrl_to_pert_r2_metrics.append(ctrl_to_pert_r2_metric)
                 batch_mmd_metrics.append(mmd_metric)
                 batch_ctrl_to_pert_mmd_metrics.append(ctrl_to_pert_mmd_metric)
+                batch_delta_pearson_metrics.append(delta_pearson_metric)
+                batch_delta_mae_metrics.append(delta_mae_metric)
 
                 if collect_covariates:
                     all_covariates.extend(collect_batch_covariates(batch_data, dataloader, datamodule, mask))
@@ -217,6 +224,8 @@ def sample_dataloader_batches(
     mean_ctrl_to_pert_r2 = float(np.mean(batch_ctrl_to_pert_r2_metrics)) if batch_ctrl_to_pert_r2_metrics else float("nan")
     mean_mmd = float(np.mean(batch_mmd_metrics)) if batch_mmd_metrics else float("nan")
     mean_ctrl_to_pert_mmd = float(np.mean(batch_ctrl_to_pert_mmd_metrics)) if batch_ctrl_to_pert_mmd_metrics else float("nan")
+    mean_delta_pearson = float(np.mean(batch_delta_pearson_metrics)) if batch_delta_pearson_metrics else float("nan")
+    mean_delta_mae = float(np.mean(batch_delta_mae_metrics)) if batch_delta_mae_metrics else float("nan")
 
     return {
         "truths": all_truths,
@@ -228,6 +237,8 @@ def sample_dataloader_batches(
         "ctrl_to_pert_r2_metric": mean_ctrl_to_pert_r2,
         "mmd_metric": mean_mmd,
         "ctrl_to_pert_mmd_metric": mean_ctrl_to_pert_mmd,
+        "delta_pearson_r": mean_delta_pearson,
+        "delta_mae": mean_delta_mae,
         "reference_col_genes": reference_col_genes,
     }
 
