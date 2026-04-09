@@ -7,7 +7,7 @@ trainer.devices=[0]
 trainer.use_distributed_sampler=false
 data.normalize_counts=10
 trainer.max_steps=200000
-lightning.callbacks.checkpoint.save_top_k=-1
+lightning.callbacks.checkpoint.save_top_k=20
 trainer.limit_val_batches=16
 lightning.ema.decay=0.99
 lightning.ema.update_steps=10
@@ -23,7 +23,7 @@ model.input_dim=2000
 data.embed_key=X_hvg
 model.output_activation=relu
 model.enable_self_condition=true
-optimization.mmd_weight_alpha=0.0 
+optimization.mmd_weight_alpha=0.01 
 "
 
 COMMON_REPLOGLE_TRAIN="
@@ -47,19 +47,22 @@ data=replogle_finetune
 data.num_workers=16
 data.prefetch_factor=12
 trainer.val_check_interval=0.5
-lightning.callbacks.checkpoint.every_n_train_steps=10000
 run_name=from_scratch_replogle_gaussian_flow
 lightning.logger.project=perturb_flow_gaussian
-lightning.logger.name=10_step_woMMD_p0.3
+lightning.logger.name=6_step_MMD_ckpt
 sampling_eval.enabled=true
-sampling_eval.flow_steps=10
-sampling_eval.guidance_strength=3
+sampling_eval.flow_steps=6
+sampling_eval.guidance_strength=1.5
 "
 
 CKPT_NAMING="
+lightning.callbacks.checkpoint.every_n_train_steps=null
+lightning.callbacks.checkpoint.every_n_epochs=1
++lightning.callbacks.checkpoint.save_on_train_epoch_end=false
+lightning.callbacks.checkpoint.mode=min
 lightning.callbacks.checkpoint.dirpath='\${trainer.default_root_dir}/\${run_name}/\${lightning.logger.name}/ckpts'
-lightning.callbacks.checkpoint.monitor=validation_validation_loss_epoch
-lightning.callbacks.checkpoint.filename='{epoch}-{step}-{validation_validation_loss_epoch:.4f}'
+lightning.callbacks.checkpoint.monitor=sampling_validation_mmd_epoch
+lightning.callbacks.checkpoint.filename='{epoch}-{step}-{sampling_validation_mmd_epoch:.4f}'
 "
 
 FAKE_BATCH="
