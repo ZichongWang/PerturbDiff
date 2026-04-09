@@ -1,6 +1,7 @@
 """Flow sampling generation helpers and metrics."""
 
 import gc
+import json
 import random
 import time
 from pathlib import Path
@@ -51,6 +52,30 @@ def save_flow_adata(pred_adata, true_adata, cfg, logger, timestamp=None):
     true_path = output_dir / f"flow_true_{timestamp}.h5ad"
     true_adata.write_h5ad(true_path)
     logger.info("Truths saved to: %s", true_path)
+
+
+def save_flow_metrics(metrics, cfg, logger, timestamp=None):
+    """
+    Save aggregate flow sampling metrics as JSON next to the sampled outputs.
+
+    :param metrics: Metric dictionary with JSON-serializable values.
+    :param cfg: Runtime configuration object.
+    :param logger: Logger instance.
+    :param timestamp: Optional timestamp override.
+    :return: None.
+    """
+    if cfg.sampling.output_dir is None:
+        output_dir = Path(cfg.save_dir_path) / "samples"
+    else:
+        output_dir = Path(cfg.sampling.output_dir)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    if timestamp is None:
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+
+    metrics_path = output_dir / f"flow_metrics_{timestamp}.json"
+    metrics_path.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n")
+    logger.info("Metrics saved to: %s", metrics_path)
 
 
 def sample_flow_dataloader_batches(
@@ -284,6 +309,13 @@ def generate_flow_samples(
 
     logger.info("Generated %s samples with shape %s", all_samples.shape[0], all_samples.shape)
     logger.info("Overall r2_metric: %s", results["r2_metric"])
+    logger.info("fake_r2_metric: %s", results["fake_r2_metric"])
+    logger.info("delta_r2_metric: %s", results["delta_r2_metric"])
+    logger.info("ctrl_to_pert_r2_metric: %s", results["ctrl_to_pert_r2_metric"])
+    logger.info("mmd_metric: %s", results["mmd_metric"])
+    logger.info("ctrl_to_pert_mmd_metric: %s", results["ctrl_to_pert_mmd_metric"])
+    logger.info("delta_pearson_r: %s", results["delta_pearson_r"])
+    logger.info("delta_mae: %s", results["delta_mae"])
 
     all_pert = np.concatenate([x[0] for x in all_covariates], axis=0)
     all_celltype = np.concatenate([x[1] for x in all_covariates], axis=0)
@@ -326,6 +358,26 @@ def generate_flow_samples(
 
     run_timestamp = time.strftime("%Y%m%d_%H%M%S")
     save_flow_adata(pred_adata, true_adata, cfg, logger, timestamp=run_timestamp)
+    save_flow_metrics(
+        {
+            "r2_metric": results["r2_metric"],
+            "fake_r2_metric": results["fake_r2_metric"],
+            "delta_r2_metric": results["delta_r2_metric"],
+            "ctrl_to_pert_r2_metric": results["ctrl_to_pert_r2_metric"],
+            "mmd_metric": results["mmd_metric"],
+            "ctrl_to_pert_mmd_metric": results["ctrl_to_pert_mmd_metric"],
+            "delta_pearson_r": results["delta_pearson_r"],
+            "delta_mae": results["delta_mae"],
+            "num_truth_cells": int(all_truths.shape[0]),
+            "num_sample_cells": int(all_samples.shape[0]),
+            "num_genes": int(all_samples.shape[1]) if all_samples.ndim == 2 else 0,
+            "flow_steps": int(cfg.sampling.flow_steps),
+            "guidance_strength": float(cfg.sampling.guidance_strength),
+        },
+        cfg,
+        logger,
+        timestamp=run_timestamp,
+    )
 
     gc.collect()
     return all_truths, all_samples, all_trajectories, None

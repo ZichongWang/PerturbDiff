@@ -37,5 +37,6 @@ else:
     )
 
 WANDB_LOGGING_DIR = _paths.get("wandb", {}).get("logging_dir")
-if WANDB_LOGGING_DIR is not None:
+wandb_disabled = str(os.environ.get("WANDB_DISABLED", "")).lower() in {"1", "true", "yes", "on"}
+if WANDB_LOGGING_DIR is not None and not wandb_disabled:
     logger.warning("log wandb to: %s", WANDB_LOGGING_DIR)

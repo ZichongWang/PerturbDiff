@@ -1,0 +1,13 @@
+pert,n_control,n_prediction,n_ground_truth,plot_path
+PPP6C,250,433,433,/home/zichong/fork/PerturbDiff/analyze/umap_plots/PPP6C_control_prediction_ground_truth_umap.png
+ZDHHC7,250,424,424,/home/zichong/fork/PerturbDiff/analyze/umap_plots/ZDHHC7_control_prediction_ground_truth_umap.png
+CCDC6,250,396,396,/home/zichong/fork/PerturbDiff/analyze/umap_plots/CCDC6_control_prediction_ground_truth_umap.png
+SART3,250,337,337,/home/zichong/fork/PerturbDiff/analyze/umap_plots/SART3_control_prediction_ground_truth_umap.png
+MRPL35,250,317,317,/home/zichong/fork/PerturbDiff/analyze/umap_plots/MRPL35_control_prediction_ground_truth_umap.png
+SLU7,250,290,290,/home/zichong/fork/PerturbDiff/analyze/umap_plots/SLU7_control_prediction_ground_truth_umap.png
+GPS1,250,269,269,/home/zichong/fork/PerturbDiff/analyze/umap_plots/GPS1_control_prediction_ground_truth_umap.png
+FBXO42,250,265,265,/home/zichong/fork/PerturbDiff/analyze/umap_plots/FBXO42_control_prediction_ground_truth_umap.png
+RABGGTA,250,240,240,/home/zichong/fork/PerturbDiff/analyze/umap_plots/RABGGTA_control_prediction_ground_truth_umap.png
+TMEM214,250,236,236,/home/zichong/fork/PerturbDiff/analyze/umap_plots/TMEM214_control_prediction_ground_truth_umap.png
+HSD17B10,250,217,217,/home/zichong/fork/PerturbDiff/analyze/umap_plots/HSD17B10_control_prediction_ground_truth_umap.png
+C7orf26,250,211,211,/home/zichong/fork/PerturbDiff/analyze/umap_plots/C7orf26_control_prediction_ground_truth_umap.png
