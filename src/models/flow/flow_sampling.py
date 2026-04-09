@@ -1,4 +1,4 @@
-"""Sampling methods for rectified flow."""
+"""Sampling methods for endpoint-predicting rectified flow."""
 
 import torch as th
 from tqdm.auto import tqdm
@@ -16,7 +16,7 @@ class RectifiedFlowSamplingMixin:
         ret["batch_emb"] = None
         return ret
 
-    def predict_velocity(
+    def predict_endpoint(
         self,
         model,
         x_t,
@@ -28,17 +28,17 @@ class RectifiedFlowSamplingMixin:
         model_kwargs=None,
     ):
         """
-        Predict velocity at the current state and time.
+        Predict the terminal endpoint at the current state and time.
 
-        :param model: Velocity model.
+        :param model: Endpoint model.
         :param x_t: Current state tensor.
         :param control_input_t: Control branch input tensor.
         :param t: Continuous time tensor in [0, 1).
         :param self_condition: Conditioning inputs for the model.
-        :param guidance_strength: Classifier-free guidance scale in velocity space.
+        :param guidance_strength: Classifier-free guidance scale in endpoint space.
         :param endpoint_estimate: Optional self-conditioned endpoint estimate.
         :param model_kwargs: Extra kwargs forwarded to the model.
-        :return: Velocity tensor.
+        :return: Endpoint tensor.
         """
         if model_kwargs is None:
             model_kwargs = {}
@@ -52,7 +52,7 @@ class RectifiedFlowSamplingMixin:
             model_kwargs=model_kwargs,
             endpoint_estimate=endpoint_estimate,
         )
-        velocity = output["x"]
+        endpoint = output["x"]
 
         if self_condition is not None and guidance_strength != 0.0:
             uncond_output = self.get_model_output(
@@ -64,9 +64,9 @@ class RectifiedFlowSamplingMixin:
                 model_kwargs=model_kwargs,
                 endpoint_estimate=endpoint_estimate,
             )
-            velocity = (1.0 + guidance_strength) * velocity - guidance_strength * uncond_output["x"]
+            endpoint = (1.0 + guidance_strength) * endpoint - guidance_strength * uncond_output["x"]
 
-        return velocity
+        return endpoint
 
     def sample_euler_loop(
         self,
@@ -83,12 +83,12 @@ class RectifiedFlowSamplingMixin:
         """
         Integrate the flow ODE with a fixed-step Euler solver.
 
-        :param model: Velocity model.
+        :param model: Endpoint model.
         :param x_start: Initial state x(0), sampled from Gaussian noise.
         :param control_input_start: Fixed control branch input tensor.
         :param self_condition: Conditioning inputs for the model.
         :param flow_steps: Number of Euler steps from t=0 to t=1.
-        :param guidance_strength: Classifier-free guidance scale in velocity space.
+        :param guidance_strength: Classifier-free guidance scale in endpoint space.
         :param clip_denoised: Whether to clip only the final generated counts.
         :param progress: Whether to show a progress bar.
         :param model_kwargs: Extra kwargs forwarded to the model.
@@ -109,7 +109,7 @@ class RectifiedFlowSamplingMixin:
         for step_idx in iterator:
             t_value = step_idx / float(flow_steps)
             t = th.full((sample.shape[0],), t_value, device=sample.device, dtype=sample.dtype)
-            velocity = self.predict_velocity(
+            x1_pred = self.predict_endpoint(
                 model=model,
                 x_t=sample,
                 control_input_t=control_input_start,
@@ -119,8 +119,10 @@ class RectifiedFlowSamplingMixin:
                 endpoint_estimate=endpoint_estimate,
                 model_kwargs=model_kwargs,
             )
+            denominator = (1.0 - self._expand_time(t, sample)).clamp_min(1e-6)
+            velocity = (x1_pred - sample) / denominator
             if getattr(model.model_cfg, "enable_self_condition", False):
-                endpoint_estimate = self.velocity_to_endpoint(sample, velocity, t)
+                endpoint_estimate = x1_pred
             sample = sample + dt * velocity
 
         sample = self.clip_terminal_sample(sample, clip_denoised=clip_denoised)

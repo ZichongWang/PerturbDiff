@@ -1,4 +1,4 @@
-"""Training methods for rectified flow."""
+"""Training methods for endpoint-predicting rectified flow."""
 
 import torch as th
 from geomloss import SamplesLoss
@@ -30,7 +30,7 @@ class RectifiedFlowTrainingMixin:
         """
         Run Cross_DiT once at continuous time `t` and return branch outputs.
 
-        :param model: Velocity model.
+        :param model: Endpoint model.
         :param x_t: Interpolated state tensor.
         :param control_input_t: Control branch input tensor.
         :param t: Continuous time tensor in [0, 1).
@@ -53,7 +53,7 @@ class RectifiedFlowTrainingMixin:
 
     @staticmethod
     def _compute_mmd_weight(t, alpha, gamma):
-        """Compute the per-sample weighted-MMD factor alpha * t^gamma / (1 - t)."""
+        """Compute the legacy per-sample weighted-MMD factor alpha * t^gamma / (1 - t)."""
         assert alpha >= 0.0, "optimization.mmd_weight_alpha must be non-negative."
         assert gamma >= 0.0, "optimization.mmd_weight_gamma must be non-negative."
         if alpha == 0.0:
@@ -75,17 +75,17 @@ class RectifiedFlowTrainingMixin:
         return_model_output=False,
     ):
         """
-        Prepare flow-matching inputs and compute losses for one batch.
+        Prepare flow-matching inputs and compute endpoint-prediction losses for one batch.
 
-        :param model: Velocity model.
+        :param model: Endpoint model.
         :param x_start: Ground-truth perturbed cells.
         :param control_input_start: Ground-truth control cells.
         :param self_condition: Conditioning inputs for the model.
         :param model_kwargs: Extra kwargs forwarded to the model.
         :param p_drop_cond: Probability of dropping conditional batch embeddings.
         :param MMD_loss_fn: Optional MMD loss function override.
-        :param mmd_weight_alpha: Non-negative alpha in the weighted-MMD term.
-        :param mmd_weight_gamma: Non-negative gamma in the weighted-MMD term.
+        :param mmd_weight_alpha: Non-negative coefficient on the endpoint MMD term.
+        :param mmd_weight_gamma: Deprecated compatibility arg; ignored.
         :param return_model_output: Whether to also return raw model outputs.
         :return: Loss term dictionary, and optional model output dict.
         """
@@ -98,7 +98,6 @@ class RectifiedFlowTrainingMixin:
         t_expanded = self._expand_time(t, x_start)
         x0 = self.sample_base_state(x_start)
         x_t = (1.0 - t_expanded) * x0 + t_expanded * x_start
-        target_velocity = x_start - x0
 
         control_input_t = control_input_start
         if model.model_cfg.p_drop_control > 0.0 and th.rand(1, device=x_start.device) < model.model_cfg.p_drop_control:
@@ -125,7 +124,7 @@ class RectifiedFlowTrainingMixin:
                     model_kwargs=model_kwargs,
                     endpoint_estimate=None,
                 )
-            endpoint_estimate = self.velocity_to_endpoint(x_t, first_pass["x"], t)
+            endpoint_estimate = first_pass["x"]
 
         model_output = self.get_model_output(
             model=model,
@@ -136,11 +135,10 @@ class RectifiedFlowTrainingMixin:
             model_kwargs=model_kwargs,
             endpoint_estimate=endpoint_estimate,
         )
-        velocity_pred = model_output["x"]
-        x1_hat = self.velocity_to_endpoint(x_t, velocity_pred, t)
+        x1_hat = model_output["x"]
 
         terms = {}
-        mse = mean_flat((target_velocity - velocity_pred) ** 2)
+        mse = mean_flat((x1_hat - x_start) ** 2)
         if model.model_cfg.no_mse_loss:
             mse = th.zeros_like(mse)
         terms["mse"] = mse
@@ -150,8 +148,8 @@ class RectifiedFlowTrainingMixin:
             weighted_mmd = th.zeros_like(mse)
         else:
             raw_mmd = MMD_loss_fn(x_start.type_as(x1_hat), x1_hat)
-            weighted_mmd = raw_mmd * self._compute_mmd_weight(t, mmd_weight_alpha, mmd_weight_gamma).type_as(raw_mmd)
-
+            # weighted_mmd = raw_mmd * self._compute_mmd_weight(t, mmd_weight_alpha, mmd_weight_gamma).type_as(raw_mmd)
+            weighted_mmd = raw_mmd * mmd_weight_alpha
         terms["mmd_weighted"] = weighted_mmd
         terms["mmd_raw"] = raw_mmd
 

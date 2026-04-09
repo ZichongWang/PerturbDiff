@@ -19,7 +19,7 @@ sampling_eval:
   num_batches: 16 # Number of validation batches to sample per evaluation event.
   flow_steps: 100 # Euler integration steps used during sampling-based validation.
   clip_denoised: true # Zero final generated counts below model.cutoff after sampling.
-  guidance_strength: 1.0 # Classifier-free guidance scale applied in velocity space.
+  guidance_strength: 1.0 # Classifier-free guidance scale applied in endpoint space.
   progress: false # Disable the sampling progress bar during validation by default.
   seed: ${optimization.seed} # Seed used to make validation sampling reproducible.
 

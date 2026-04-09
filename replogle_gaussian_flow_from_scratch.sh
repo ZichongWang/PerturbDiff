@@ -21,22 +21,23 @@ data.pad_length=2000
 model.hidden_num=[2000,512]
 model.input_dim=2000
 data.embed_key=X_hvg
-model.output_activation=identity
+model.output_activation=relu
 model.enable_self_condition=true
-optimization.mmd_weight_alpha=0.01
-optimization.mmd_weight_gamma=0.0
+optimization.mmd_weight_alpha=0.0 
 "
 
 COMMON_REPLOGLE_TRAIN="
 optimization.micro_batch_size=512
 data.use_cell_set=32
-optimization.optimizer.lr=0.0003
+optimization.optimizer.lr=0.0005
+optimization.scheduler.min_ratio=0.01
+optimization.scheduler.plateau_ratio=0.0
 cov_encoding.replogle_gene_encoding=genept
 "
 
 COMMON_SCRATCH_DATA="
 cov_encoding.celltype_encoding=llm
-model.p_drop_cond=0.2
+model.p_drop_cond=0.3
 model.p_drop_control=0
 data.keep_control_cell=false
 "
@@ -49,10 +50,10 @@ trainer.val_check_interval=0.5
 lightning.callbacks.checkpoint.every_n_train_steps=10000
 run_name=from_scratch_replogle_gaussian_flow
 lightning.logger.project=perturb_flow_gaussian
-lightning.logger.name=w0.01
+lightning.logger.name=10_step_woMMD_p0.3
 sampling_eval.enabled=true
-sampling_eval.flow_steps=100
-sampling_eval.guidance_strength=0.2
+sampling_eval.flow_steps=10
+sampling_eval.guidance_strength=3
 "
 
 CKPT_NAMING="
@@ -67,7 +68,7 @@ data.perturbseq_batch_col=fake_batch
 data.skip_cached_indices=true
 "
 
-CUDA_VISIBLE_DEVICES=0 python ./src/apps/run/rawdata_flow_training.py \
+CUDA_VISIBLE_DEVICES=1 python ./src/apps/run/rawdata_flow_training.py \
 $COMMON_TRAIN_RUNTIME \
 $COMMON_MODEL_2000 \
 $COMMON_SCRATCH_DATA \

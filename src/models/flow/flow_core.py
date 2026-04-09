@@ -60,11 +60,11 @@ class RectifiedFlow(
         return th.randn_like(reference)
 
     def velocity_to_endpoint(self, x_t, velocity, t):
-        """Convert a velocity prediction into a terminal point estimate."""
+        """Legacy helper to convert a velocity prediction into a terminal point estimate."""
         return x_t + (1.0 - self._expand_time(t, x_t)) * velocity
 
     def clip_terminal_sample(self, sample, clip_denoised=True):
-        """Clip only the final generated counts, not the velocity field itself."""
+        """Clip only the final generated counts, not intermediate states during integration."""
         if not clip_denoised:
             return sample
         return sample.masked_fill(sample < getattr(self.model_cfg, "cutoff", 0.0), 0)
