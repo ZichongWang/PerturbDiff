@@ -14,7 +14,7 @@ from sklearn.metrics import r2_score
 def parse_args() -> argparse.Namespace:
     analyze_dir = Path(__file__).resolve().parent
     repo_root = analyze_dir.parent
-    sample_dir = repo_root / "checkpoints/test_samples/nommd"
+    sample_dir = repo_root / "checkpoints/test_samples/mmd"
 
     parser = argparse.ArgumentParser(
         description=(
@@ -25,13 +25,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--true-path",
         type=Path,
-        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/nommd/flow_true_20260409_192829.h5ad",
+        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/mmd/flow_true_20260410_095348.h5ad",
         help="Path to the ground-truth h5ad.",
     )
     parser.add_argument(
         "--pred-path",
         type=Path,
-        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/nommd/flow_predict_20260409_192829.h5ad",
+        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/mmd/flow_predict_20260410_095348.h5ad",
         help="Path to the predicted h5ad.",
     )
     parser.add_argument(
