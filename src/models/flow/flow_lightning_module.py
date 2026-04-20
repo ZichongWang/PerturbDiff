@@ -297,6 +297,7 @@ class FlowPlModel(pl.LightningModule):
             MMD_loss_fn=self.loss_fn,
             mmd_weight_alpha=self.optimizer_cfg.mmd_weight_alpha,
             mmd_weight_gamma=self.optimizer_cfg.mmd_weight_gamma,
+            devide_1_t=getattr(self.optimizer_cfg, "devide_1_t", True),
         )
 
         mse = losses['mse']

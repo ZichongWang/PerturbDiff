@@ -9,5 +9,6 @@ micro_batch_size: 128 # Number of examples processed per optimizer step on each 
 seed: 42 # Global random seed for dataloading, training, and sampling.
 blur: 0.05 # GeomLoss blur parameter used by SamplesLoss.
 use_mse_loss: true # Include the flow-matching MSE term in the total loss when true.
+devide_1_t: true # When true, scale the endpoint MSE by 1 / (1 - t); when false, use plain endpoint MSE.
 mmd_weight_alpha: 1.0 # Non-negative coefficient on the endpoint MMD term.
 mmd_weight_gamma: 0.0 # Deprecated compatibility field; ignored by the current endpoint-prediction loss.

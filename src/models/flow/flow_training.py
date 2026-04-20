@@ -72,6 +72,7 @@ class RectifiedFlowTrainingMixin:
         MMD_loss_fn=None,
         mmd_weight_alpha=0.0,
         mmd_weight_gamma=0.0,
+        devide_1_t=True,
         return_model_output=False,
     ):
         """
@@ -86,6 +87,7 @@ class RectifiedFlowTrainingMixin:
         :param MMD_loss_fn: Optional MMD loss function override.
         :param mmd_weight_alpha: Non-negative coefficient on the endpoint MMD term.
         :param mmd_weight_gamma: Deprecated compatibility arg; ignored.
+        :param devide_1_t: Whether to divide endpoint residuals by (1 - t) before the MSE reduction.
         :param return_model_output: Whether to also return raw model outputs.
         :return: Loss term dictionary, and optional model output dict.
         """
@@ -138,7 +140,10 @@ class RectifiedFlowTrainingMixin:
         x1_hat = model_output["x"]
 
         terms = {}
-        mse = mean_flat((x1_hat - x_start) ** 2)
+        error = x1_hat - x_start
+        if devide_1_t:
+            error = error / (1.0 - t_expanded).clamp_min(1e-2)
+        mse = mean_flat(error ** 2)
         if model.model_cfg.no_mse_loss:
             mse = th.zeros_like(mse)
         terms["mse"] = mse

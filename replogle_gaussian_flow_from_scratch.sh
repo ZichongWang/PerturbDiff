@@ -7,7 +7,7 @@ trainer.devices=[0]
 trainer.use_distributed_sampler=false
 data.normalize_counts=10
 trainer.max_steps=200000
-lightning.callbacks.checkpoint.save_top_k=20
+lightning.callbacks.checkpoint.save_top_k=40
 trainer.limit_val_batches=16
 lightning.ema.decay=0.99
 lightning.ema.update_steps=10
@@ -23,6 +23,7 @@ model.input_dim=2000
 data.embed_key=X_hvg
 model.output_activation=relu
 model.enable_self_condition=true
+optimization.devide_1_t=true
 optimization.mmd_weight_alpha=0.01 
 "
 
@@ -49,7 +50,7 @@ data.prefetch_factor=12
 trainer.val_check_interval=0.5
 run_name=from_scratch_replogle_gaussian_flow
 lightning.logger.project=perturb_flow_gaussian
-lightning.logger.name=6_step_MMD_ckpt
+lightning.logger.name=6_step_MMD_devide_1_t
 sampling_eval.enabled=true
 sampling_eval.flow_steps=6
 sampling_eval.guidance_strength=1.5

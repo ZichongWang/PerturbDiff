@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import warnings
 from pathlib import Path
 
 import anndata as ad
 import numpy as np
 import pandas as pd
 from scipy import sparse, stats
+from scipy.stats import ConstantInputWarning, NearConstantInputWarning
 from sklearn.metrics import r2_score
 
 
@@ -25,13 +27,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--true-path",
         type=Path,
-        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/mmd/flow_true_20260410_095348.h5ad",
+        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/sweeps/ckpt82753_20260410/s2_g0.25/flow_true_20260410_104405.h5ad",
         help="Path to the ground-truth h5ad.",
     )
     parser.add_argument(
         "--pred-path",
         type=Path,
-        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/mmd/flow_predict_20260410_095348.h5ad",
+        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/sweeps/ckpt82753_20260410/s2_g0.25/flow_predict_20260410_104405.h5ad",
         help="Path to the predicted h5ad.",
     )
     parser.add_argument(
@@ -91,7 +93,12 @@ def to_dense(x) -> np.ndarray:
 
 
 def safe_pearsonr(x: np.ndarray, y: np.ndarray) -> float:
-    corr = stats.pearsonr(x, y).statistic
+    if x.size < 2 or y.size < 2:
+        return float("nan")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConstantInputWarning)
+        warnings.simplefilter("ignore", NearConstantInputWarning)
+        corr = stats.pearsonr(x, y).statistic
     return float(corr)
 
 
@@ -120,7 +127,7 @@ def compute_group_metrics(
     control_label: str,
     group_cols: list[str],
     match_control_cols: list[str],
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
     obs = obs.copy().reset_index(drop=True)
     for col in set(group_cols + match_control_cols + [pert_col]):
         obs[col] = obs[col].astype(str)
@@ -136,6 +143,8 @@ def compute_group_metrics(
     control_obs_all["_match_key"] = make_tuple_keys(control_obs_all, match_control_cols)
 
     rows = []
+    delta_true_rows = []
+    delta_pred_rows = []
     for group_key, group_idx in pert_obs.groupby("_group_key").groups.items():
         group_indices = np.asarray(group_idx, dtype=np.int64)
         group_obs = obs.iloc[group_indices]
@@ -156,6 +165,8 @@ def compute_group_metrics(
 
         delta_true = mu_true_pert - mu_ctrl
         delta_pred = mu_pred_pert - mu_ctrl
+        delta_true_rows.append(delta_true)
+        delta_pred_rows.append(delta_pred)
 
         row = {
             "num_pert_cells": int(group_indices.size),
@@ -178,16 +189,35 @@ def compute_group_metrics(
         "pdcorr",
         "mae",
     ]
-    return metric_df.loc[:, ordered_cols].sort_values(group_cols).reset_index(drop=True)
+    metric_df = metric_df.loc[:, ordered_cols].sort_values(group_cols).reset_index(drop=True)
+    delta_true_matrix = np.stack(delta_true_rows, axis=0)
+    delta_pred_matrix = np.stack(delta_pred_rows, axis=0)
+    return metric_df, delta_true_matrix, delta_pred_matrix
 
 
-def summarize_metrics(metric_df: pd.DataFrame, group_cols: list[str]) -> dict:
+def compute_delta_pert_r(delta_true: np.ndarray, delta_pred: np.ndarray) -> float:
+    if delta_true.shape != delta_pred.shape:
+        raise ValueError("delta_true and delta_pred must have the same shape.")
+    if delta_true.ndim != 2:
+        raise ValueError("delta_true and delta_pred must be 2D arrays of shape (n_pert, n_gene).")
+
+    gene_corrs = [safe_pearsonr(delta_true[:, gene_idx], delta_pred[:, gene_idx]) for gene_idx in range(delta_true.shape[1])]
+    return float(np.nanmean(gene_corrs))
+
+
+def summarize_metrics(
+    metric_df: pd.DataFrame,
+    group_cols: list[str],
+    delta_true_matrix: np.ndarray,
+    delta_pred_matrix: np.ndarray,
+) -> dict:
     return {
         "num_conditions": int(len(metric_df)),
         "group_cols": list(group_cols),
         "overall_r2_mean": float(metric_df["overall_r2"].mean()),
         "delta_r2_mean": float(metric_df["delta_r2"].mean()),
         "pdcorr_mean": float(metric_df["pdcorr"].mean()),
+        "delta_pert_r": compute_delta_pert_r(delta_true_matrix, delta_pred_matrix),
         "mae_mean": float(metric_df["mae"].mean()),
     }
 
@@ -205,7 +235,7 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     prefix = args.prefix or args.pred_path.stem
 
-    metric_df = compute_group_metrics(
+    metric_df, delta_true_matrix, delta_pred_matrix = compute_group_metrics(
         obs=true_adata.obs,
         true_x=to_dense(true_adata.X),
         pred_x=to_dense(pred_adata.X),
@@ -214,7 +244,7 @@ def main() -> None:
         group_cols=group_cols,
         match_control_cols=match_control_cols,
     )
-    summary = summarize_metrics(metric_df, group_cols)
+    summary = summarize_metrics(metric_df, group_cols, delta_true_matrix, delta_pred_matrix)
     summary.update(
         {
             "true_path": str(args.true_path.resolve()),
