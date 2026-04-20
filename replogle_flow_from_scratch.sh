@@ -23,7 +23,7 @@ model.input_dim=2000
 data.embed_key=X_hvg
 model.output_activation=identity
 model.enable_self_condition=true
-optimization.devide_1_t=true
+optimization.devide_1_t=false
 optimization.mmd_weight_alpha=1.0
 optimization.mmd_weight_gamma=0.0
 "
