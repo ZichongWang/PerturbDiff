@@ -72,7 +72,7 @@ class RectifiedFlowSamplingMixin:
         self,
         model,
         x_start,
-        control_input_start=None,
+        control_input_start,
         self_condition=None,
         flow_steps=8,
         guidance_strength=0.0,
@@ -97,7 +97,7 @@ class RectifiedFlowSamplingMixin:
         if model_kwargs is None:
             model_kwargs = {}
         assert flow_steps > 0, "sampling.flow_steps must be a positive integer."
-
+        assert control_input_start is not None
         control_input_start = x_start if control_input_start is None else control_input_start
         sample = x_start.clone()
         endpoint_estimate = None
@@ -125,7 +125,7 @@ class RectifiedFlowSamplingMixin:
                 endpoint_estimate = x1_pred
             sample = sample + dt * velocity
 
-        sample = self.clip_terminal_sample(sample, clip_denoised=clip_denoised)
+        sample = self.clip_terminal_sample(sample + control_input_start, clip_denoised=clip_denoised)
         return sample, []
 
 

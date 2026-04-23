@@ -97,9 +97,10 @@ class RectifiedFlowTrainingMixin:
             MMD_loss_fn = SamplesLoss(loss="energy", blur=0.05)
 
         t = th.rand(x_start.shape[0], device=x_start.device, dtype=x_start.dtype).clamp(max=1.0 - 1e-6)
+        delta = x_start - control_input_start
         t_expanded = self._expand_time(t, x_start)
         x0 = self.sample_base_state(x_start)
-        x_t = (1.0 - t_expanded) * x0 + t_expanded * x_start
+        x_t = (1.0 - t_expanded) * x0 + t_expanded * delta
 
         control_input_t = control_input_start
         if model.model_cfg.p_drop_control > 0.0 and th.rand(1, device=x_start.device) < model.model_cfg.p_drop_control:
@@ -137,10 +138,11 @@ class RectifiedFlowTrainingMixin:
             model_kwargs=model_kwargs,
             endpoint_estimate=endpoint_estimate,
         )
-        x1_hat = model_output["x"]
+        delta_hat = model_output["x"]
+        x1_hat = delta_hat + control_input_start
 
         terms = {}
-        error = x1_hat - x_start
+        error = delta_hat - delta
         if devide_1_t:
             error = error / (1.0 - t_expanded).clamp_min(1e-2)
         mse = mean_flat(error ** 2)

@@ -27,13 +27,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--true-path",
         type=Path,
-        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/sweeps/ckpt82753_20260410/s2_g0.25/flow_true_20260410_104405.h5ad",
+        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/mmd/flow_true_20260421_192104.h5ad",
         help="Path to the ground-truth h5ad.",
     )
     parser.add_argument(
         "--pred-path",
         type=Path,
-        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/sweeps/ckpt82753_20260410/s2_g0.25/flow_predict_20260410_104405.h5ad",
+        default="/home/zichong/fork/PerturbDiff/checkpoints/test_samples/mmd/flow_predict_20260421_192104.h5ad",
         help="Path to the predicted h5ad.",
     )
     parser.add_argument(

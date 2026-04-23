@@ -10,7 +10,7 @@ qk_norm: True # Compatibility flag retained from the existing model config famil
 input_dim: 2000 # Number of genes per cell representation.
 hidden_num: [2000, 512] # [gene_dim, hidden_dim] used for input/output width and transformer width.
 dropout: 0.1 # Compatibility dropout value retained with the shared backbone config family.
-output_activation: "relu" # Final activation for endpoint prediction; matches diffusion's non-negative x_start head.
+output_activation: "identity" # Final activation for endpoint prediction; matches diffusion's non-negative x_start head.
 use_orig_gene_count_as_emb: True # Keep the shared backbone behavior that uses gene counts as part of the input embedding.
 class_emb_gather_strategy: ${..cov_encoding.gather_strategy} # Shared covariate gather strategy used for class embeddings.
 class_emb_hidden_dimension: ${..cov_encoding.hidden_dim} # Shared hidden size used by the covariate/class embedding pathway.

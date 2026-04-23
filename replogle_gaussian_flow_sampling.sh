@@ -6,7 +6,7 @@ export WANDB_DISABLED=true
 export WANDB_MODE=disabled
 
 # Paste the checkpoint you want to evaluate here, then run this script.
-CKPT_PATH="${CKPT_PATH:-/home/zichong/fork/PerturbDiff/checkpoints/from_scratch_replogle_gaussian_flow/6_step_MMD_ckpt/ckpts/epoch=111-step=143054-sampling_validation_mmd_epoch=0.0265.ckpt}"
+CKPT_PATH="${CKPT_PATH:-/home/zichong/fork/PerturbDiff/checkpoints/from_scratch_replogle_gaussian_flow/v0/ckpts/epoch=93-step=119960-sampling_validation_mmd_epoch=0.0203.ckpt}"
 RUN_NAME="${RUN_NAME:-mmd}"
 VISIBLE_DEVICES="${VISIBLE_DEVICES:-0}"
 FLOW_STEPS="${FLOW_STEPS:-5}"

@@ -17,12 +17,18 @@ Another finding is the weight of NN. In wandb I find the weight of some layers w
 The weight of MMD is $\alpha t^\gamma / (1-t)$, that's because to calculate MMD, need $\hat x = x_t + (1-t) * \hat v$, thus need a factor of $1/(1-t)$(clamp to 1e3). OT pairing plan use exact_ot only have one positive number per row, so use sampling is equal to argmax.
 
 Another branch is exp/gaussian_x0, which i try to start from a gaussian noise.
-<!-- ## Research on Flow Matching
-I'm currently reasearching on flow matching and MMD loss. I try to let my model outperform the diffusion one. Please write what you think that can be improved, what's the current problem in [DEVELOP.md](DEVELOP.md). I will try to answer questions. Example:
-```
-1. Q: 
+It shows that start from a gaussian noise have better results. Moreover, it's crutial to predict x1 directly, predicting velocity then MSE does not work. Branch exp/gaussian_x0_predict_x1 does that.
+The training script is `replogle_gaussian_flow_from_scratch.sh`, of course you can alse run python directly. 
 
-``` -->
+Branch exp/gaussian_predict_delta tries start from gaussian noise and predict x_pert-x_ctrl. 
+
+
+## Run inference
+During inference running, please run `replogle_gaussian_flow_sampling.sh` or directly run python script. 
+It will create some metrics but they are not accurate, you should find the output h5ad files(should have two, one is true the other is predict) and use `analyze/replogle_pseudobulk_metrics.py` for metrics. 
+delta_r2_mean and pdcorr_mean are two I most care about. 
+
+Recent runs show that for flow methods, guidance=0.25, flow step=2 is best. If sweep is needed, you can start from that. 
 
 ## Build, Test, and Development Commands
 There is no package build step; development is driven by Python entrypoints plus Hydra overrides.
