@@ -3,11 +3,20 @@ import os
 import pickle
 
 import numpy as np
-import omegaconf
 import pandas as pd
-from tqdm import tqdm
 
 from src.common.utils import safe_decode_array
+
+
+def read_var_names(h5f, key):
+    """Read a var column from either dense or categorical h5ad storage."""
+    obj = h5f[f"/var/{key}"]
+    if hasattr(obj, "keys") and "categories" in obj and "codes" in obj:
+        categories = safe_decode_array(obj["categories"][:])
+        codes = obj["codes"][:].astype(int)
+        return categories[codes]
+    return safe_decode_array(obj[:])
+
 
 def split_out_control(dataset):
     """
@@ -103,12 +112,25 @@ def group_by_three_keys(dataset, arr, cache, key1_name, key2_name, key3_name):
         f"group by three keys: {key1_name}: {num_key1}, {key2_name}: {num_key2}, {key3_name}: {num_key3}"
     )
 
-    for i in tqdm(range(num_key1)):
-        for j in range(num_key2):
-            for k in range(num_key3):
-                mask = (key1_codes == i) & (key2_codes == j) & (key3_codes == k)
-                gp_indices[(i, j, k)] = mask.nonzero()[0]
-                gp_cells[(i, j, k)] = len(gp_indices[(i, j, k)])
+    if len(arr) == 0:
+        return gp_indices, gp_cells
+
+    order = np.lexsort((key3_codes, key2_codes, key1_codes))
+    sorted_key1 = key1_codes[order]
+    sorted_key2 = key2_codes[order]
+    sorted_key3 = key3_codes[order]
+
+    change_points = np.flatnonzero(
+        (sorted_key1[1:] != sorted_key1[:-1])
+        | (sorted_key2[1:] != sorted_key2[:-1])
+        | (sorted_key3[1:] != sorted_key3[:-1])
+    ) + 1
+    boundaries = np.concatenate(([0], change_points, [len(order)]))
+
+    for start, end in zip(boundaries[:-1], boundaries[1:]):
+        key = (int(sorted_key1[start]), int(sorted_key2[start]), int(sorted_key3[start]))
+        gp_indices[key] = order[start:end]
+        gp_cells[key] = end - start
 
     return gp_indices, gp_cells
 
@@ -230,18 +252,18 @@ def get_selected_gene_vars(dataset):
     for ds_name in dataset._names:
         h5f = dataset.store.dataset_file(ds_name)
         try:
-            all_genes = safe_decode_array((h5f["/var/_index"]))
+            all_genes = read_var_names(h5f, "_index")
         except:
             try:
-                all_genes = safe_decode_array((h5f["/var/gene_name_index"]))
+                all_genes = read_var_names(h5f, "gene_name_index")
             except:
                 try:
-                    all_genes = safe_decode_array((h5f["/var/ensembl_id"]))
+                    all_genes = read_var_names(h5f, "ensembl_id")
                 except:
                     try:
-                        all_genes = safe_decode_array((h5f["/var/gene_name"]))
+                        all_genes = read_var_names(h5f, "gene_name")
                     except:
-                        all_genes = safe_decode_array((h5f["/var/gene_short_name"]))
+                        all_genes = read_var_names(h5f, "gene_short_name")
 
         if "cellxgene" in ds_name:
             gm = pd.read_csv(dataset.data_args.gene_mapping_file)
@@ -262,11 +284,16 @@ def get_selected_gene_vars(dataset):
         else:
             dataset.gene_vars[ds_name] = all_genes
 
+        if isinstance(dataset.selected_genes, dict) and dataset.selected_genes[ds_name] is None:
+            dataset.selected_genes[ds_name] = list(all_genes)
+
         if isinstance(dataset.selected_genes, dict):
             mask = np.isin(all_genes, dataset.selected_genes[ds_name])
+            selected_gene_count = len(dataset.selected_genes[ds_name])
         else:
             mask = np.isin(all_genes, dataset.selected_genes)
+            selected_gene_count = len(dataset.selected_genes)
         dataset.selected_gene_mask[ds_name] = mask
         dataset.py_logger.info(
-            f"Shared gene count in data {ds_name}: \t\t---- ({mask.sum()} / {len(dataset.selected_genes)}; original: {len(all_genes)})"
+            f"Shared gene count in data {ds_name}: \t\t---- ({mask.sum()} / {selected_gene_count}; original: {len(all_genes)})"
         )

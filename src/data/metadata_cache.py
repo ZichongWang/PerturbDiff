@@ -70,13 +70,11 @@ class H5MetadataCache:
                     self.batch_categories = safe_decode_array(batch_ds["categories"][:])
                     self.batch_codes = batch_ds["codes"][:].astype(np.int32)
                 else:
-                    # only for replogle
-                    assert "replogle" in h5_path
                     self.batch_is_categorical = False
                     raw = batch_ds[:]
-                    self.batch_categories = np.array(np.sort(list(set(raw))).astype(str))
-                    assert (self.batch_categories == (np.arange(len(self.batch_categories)) + 1).astype(str)).all()
-                    self.batch_codes = raw.astype(np.int32) - 1
+                    unique_values, inverse = np.unique(raw, return_inverse=True)
+                    self.batch_categories = unique_values.astype(str)
+                    self.batch_codes = inverse.astype(np.int32)
 
             # -- Codes for pert & cell type --
             if pert_col is not None:

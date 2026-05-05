@@ -3,6 +3,69 @@
 import numpy as np
 from tqdm import tqdm
 
+
+def split_by_gene_files(dm, cache, key_info):
+    """Build train/validation/test indices from configured perturbation-gene .npy files."""
+    split_gene_files = getattr(dm.data_args, "split_gene_files", None)
+    if not split_gene_files:
+        return None
+
+    categories = np.asarray(cache.pert_categories).astype(str)
+    category_to_code = {name: code for code, name in enumerate(categories)}
+    control_pert = str(key_info["control_pert"])
+    control_code = category_to_code.get(control_pert)
+    if control_code is None:
+        raise ValueError(f"control_pert={control_pert!r} not found in perturbation categories")
+
+    all_indices = np.arange(cache.n_cells)
+    control_mask = cache.pert_codes == control_code
+    control_indices = all_indices[control_mask]
+    control_aliases = {control_pert, "ctrl", "control", "non-targeting"}
+
+    split_indices = {}
+    seen_non_control = set()
+    for split_stage in ["train"] + dm.all_split_names:
+        split_file = split_gene_files.get(split_stage)
+        if split_file is None and split_stage == "validation":
+            split_file = split_gene_files.get("val")
+        if split_file is None:
+            raise ValueError(f"data.split_gene_files is missing a path for split {split_stage!r}")
+
+        genes = np.load(split_file, allow_pickle=True).astype(str)
+        pert_genes = [gene for gene in genes if gene not in control_aliases]
+        missing = sorted(set(pert_genes) - set(category_to_code))
+        if missing:
+            raise ValueError(
+                f"{split_file} contains {len(missing)} perturbations that are not present in "
+                f"{dm.data_args.dataset_path}. First missing values: {missing[:10]}"
+            )
+
+        overlap = seen_non_control.intersection(pert_genes)
+        if overlap:
+            raise ValueError(
+                f"data.split_gene_files contains overlapping perturbations before split {split_stage!r}. "
+                f"First overlaps: {sorted(overlap)[:10]}"
+            )
+        seen_non_control.update(pert_genes)
+
+        pert_codes = np.fromiter((category_to_code[gene] for gene in pert_genes), dtype=np.int32)
+        pert_mask = np.isin(cache.pert_codes, pert_codes)
+        indices = all_indices[pert_mask & ~control_mask]
+        if not dm.data_args.split_control:
+            indices = np.concatenate([indices, control_indices])
+        indices.sort()
+        split_indices[split_stage] = indices
+        dm.py_logger.info(
+            "Loaded explicit %s split from %s: %s perturbations, %s cells",
+            split_stage,
+            split_file,
+            len(pert_genes),
+            len(indices),
+        )
+
+    return split_indices
+
+
 def split_pbmc(dm, cache, target_type, key_info, holdout_setname=None, random_setname=None):
     """
     Split pbmc.
@@ -16,6 +79,10 @@ def split_pbmc(dm, cache, target_type, key_info, holdout_setname=None, random_se
     :return: Computed output(s) for this function.
     """
     assert holdout_setname == "holdout_pert" and random_setname == "random_Perturbseq"
+
+    explicit_split_indices = split_by_gene_files(dm, cache, key_info)
+    if explicit_split_indices is not None:
+        return explicit_split_indices
 
     left_indices = np.arange(cache.n_cells)
     categories = cache.pert_categories
@@ -117,6 +184,10 @@ def split_tahoe100m(dm, cache, target_type, key_info, holdout_setname=None, rand
     :return: Computed output(s) for this function.
     """
     assert holdout_setname == "holdout_pert" and random_setname == "random_Perturbseq"
+
+    explicit_split_indices = split_by_gene_files(dm, cache, key_info)
+    if explicit_split_indices is not None:
+        return explicit_split_indices
 
     left_indices = np.arange(cache.n_cells)
     categories = cache.pert_categories

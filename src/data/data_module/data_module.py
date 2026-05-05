@@ -212,11 +212,14 @@ class PBMCPerturbationDataModule(PretrainingDataModule):
             "holdout_pert": cfg.holdout_pert,
         }
 
-        with open(cfg.selected_gene_file, "rb") as fin:
-            selected_genes = pickle.load(fin)
-        # it's a set, because it's merged from multiple datasets
-        if isinstance(selected_genes, set):
-            selected_genes = sorted(list(selected_genes))
+        if cfg.selected_gene_file is None:
+            selected_genes = None
+        else:
+            with open(cfg.selected_gene_file, "rb") as fin:
+                selected_genes = pickle.load(fin)
+            # it's a set, because it's merged from multiple datasets
+            if isinstance(selected_genes, set):
+                selected_genes = sorted(list(selected_genes))
 
         if cfg.dataset_name is None:
             file_list = glob(os.path.join(cfg.dataset_path, "*.h5ad"))
