@@ -102,6 +102,40 @@ def safe_pearsonr(x: np.ndarray, y: np.ndarray) -> float:
     return float(corr)
 
 
+def squared_euclidean_distances(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    x_norm = np.sum(x * x, axis=1, keepdims=True)
+    y_norm = np.sum(y * y, axis=1, keepdims=True).T
+    return np.maximum(x_norm + y_norm - 2.0 * x @ y.T, 0.0)
+
+
+def median_bandwidth(x: np.ndarray, y: np.ndarray) -> float:
+    xy = np.concatenate([x, y], axis=0)
+    dist2 = squared_euclidean_distances(xy, xy)
+    positive_dist2 = dist2[dist2 > 0.0]
+    if positive_dist2.size == 0:
+        return 1.0
+    return float(np.sqrt(np.median(positive_dist2)))
+
+
+def gaussian_mmd(x: np.ndarray, y: np.ndarray) -> float:
+    if x.ndim != 2 or y.ndim != 2:
+        raise ValueError("MMD inputs must be 2D arrays of shape (n_cell, n_gene).")
+    if x.shape[1] != y.shape[1]:
+        raise ValueError("MMD inputs must have the same number of genes.")
+
+    bandwidth = median_bandwidth(x, y)
+    gamma = 1.0 / (2.0 * bandwidth * bandwidth)
+    k_xx = np.exp(-gamma * squared_euclidean_distances(x, x)).mean()
+    k_yy = np.exp(-gamma * squared_euclidean_distances(y, y)).mean()
+    k_xy = np.exp(-gamma * squared_euclidean_distances(x, y)).mean()
+    return float(max(k_xx + k_yy - 2.0 * k_xy, 0.0))
+
+
+def repeat_to_length(indices: np.ndarray, length: int) -> np.ndarray:
+    repeats = int(np.ceil(length / indices.size))
+    return np.tile(indices, repeats)[:length]
+
+
 def make_tuple_keys(df: pd.DataFrame, cols: list[str]) -> pd.Series:
     if not cols:
         return pd.Series([()] * len(df), index=df.index, dtype=object)
@@ -158,6 +192,7 @@ def compute_group_metrics(
         true_group = true_x[group_indices]
         pred_group = pred_x[group_indices]
         ctrl_group = true_x[control_indices]
+        paired_ctrl_group = true_x[repeat_to_length(control_indices, group_indices.size)]
 
         mu_true_pert = true_group.mean(axis=0)
         mu_pred_pert = pred_group.mean(axis=0)
@@ -165,6 +200,8 @@ def compute_group_metrics(
 
         delta_true = mu_true_pert - mu_ctrl
         delta_pred = mu_pred_pert - mu_ctrl
+        delta_true_cells = true_group - paired_ctrl_group
+        delta_pred_cells = pred_group - paired_ctrl_group
         delta_true_rows.append(delta_true)
         delta_pred_rows.append(delta_pred)
 
@@ -175,6 +212,8 @@ def compute_group_metrics(
             "delta_r2": float(r2_score(delta_true, delta_pred)),
             "pdcorr": safe_pearsonr(delta_true, delta_pred),
             "mae": float(np.abs(delta_pred - delta_true).mean()),
+            "overall_mmd": gaussian_mmd(pred_group, true_group),
+            "delta_mmd": gaussian_mmd(delta_pred_cells, delta_true_cells),
         }
         for col, value in zip(group_cols, group_key if isinstance(group_key, tuple) else (group_key,)):
             row[col] = value
@@ -188,6 +227,8 @@ def compute_group_metrics(
         "delta_r2",
         "pdcorr",
         "mae",
+        "overall_mmd",
+        "delta_mmd",
     ]
     metric_df = metric_df.loc[:, ordered_cols].sort_values(group_cols).reset_index(drop=True)
     delta_true_matrix = np.stack(delta_true_rows, axis=0)
@@ -219,6 +260,8 @@ def summarize_metrics(
         "pdcorr_mean": float(metric_df["pdcorr"].mean()),
         "delta_pert_r": compute_delta_pert_r(delta_true_matrix, delta_pred_matrix),
         "mae_mean": float(metric_df["mae"].mean()),
+        "Overall_MMD": float(metric_df["overall_mmd"].mean()),
+        "Delta_MMD": float(metric_df["delta_mmd"].mean()),
     }
 
 
