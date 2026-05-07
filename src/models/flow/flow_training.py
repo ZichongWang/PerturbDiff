@@ -101,6 +101,7 @@ class RectifiedFlowTrainingMixin:
         x0 = self.sample_base_state(x_start)
         x_t = (1.0 - t_expanded) * x0 + t_expanded * x_start
 
+        control_input_start = self.batch_control_mean(control_input_start)
         control_input_t = control_input_start
         if model.model_cfg.p_drop_control > 0.0 and th.rand(1, device=x_start.device) < model.model_cfg.p_drop_control:
             control_input_t = th.zeros_like(control_input_t)

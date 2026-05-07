@@ -149,19 +149,21 @@ def sample_flow_dataloader_batches(
 
                 pert_emb = batch_data["pert_emb"]
                 control_emb = batch_data["cont_emb"]
+                model_control_emb = flow.batch_control_mean(control_emb)
                 if reference_col_genes is None:
                     reference_col_genes = batch_data["col_genes"][0]
                 gene_emb = build_gene_embedding_cache(model, batch_data, device)
                 self_condition = build_self_condition(cfg, model, batch_data, gene_emb)
+                self_condition["cont_emb"] = model_control_emb
                 
                 mask = ~batch_data["is_padded_list"].bool()
                 batch_start_time = time.time()
-                x0 = flow.sample_base_state(control_emb)
+                x0 = flow.sample_base_state(model_control_emb)
 
                 sample, _traj = flow.sample_euler_loop(
                     model.model,
                     x_start=x0,
-                    control_input_start=control_emb,
+                    control_input_start=model_control_emb,
                     self_condition=self_condition,
                     flow_steps=flow_steps,
                     guidance_strength=guidance_strength,

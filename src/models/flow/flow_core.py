@@ -59,6 +59,12 @@ class RectifiedFlow(
         """Sample the Gaussian flow start state x0 with the same shape as `reference`."""
         return th.randn_like(reference)
 
+    @staticmethod
+    def batch_control_mean(control_emb):
+        """Broadcast each cell-set control mean back to the original control tensor shape."""
+        assert control_emb.ndim == 3, "Flow control embeddings must be shaped [B, S, G]."
+        return control_emb.mean(dim=1, keepdim=True).expand_as(control_emb)
+
     def velocity_to_endpoint(self, x_t, velocity, t):
         """Legacy helper to convert a velocity prediction into a terminal point estimate."""
         return x_t + (1.0 - self._expand_time(t, x_t)) * velocity

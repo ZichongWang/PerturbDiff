@@ -38,7 +38,7 @@ cov_encoding.replogle_gene_encoding=genept
 
 COMMON_SCRATCH_DATA="
 cov_encoding.celltype_encoding=llm
-model.p_drop_cond=0.3
+model.p_drop_cond=0.1
 model.p_drop_control=0
 data.keep_control_cell=false
 "
@@ -50,10 +50,10 @@ data.prefetch_factor=12
 trainer.val_check_interval=0.5
 run_name=from_scratch_replogle_gaussian_flow
 lightning.logger.project=perturb_flow_gaussian
-lightning.logger.name=6_step_MMD_devide_1_t
+lightning.logger.name=1_step_mean
 sampling_eval.enabled=true
-sampling_eval.flow_steps=6
-sampling_eval.guidance_strength=1.5
+sampling_eval.flow_steps=1
+sampling_eval.guidance_strength=0
 "
 
 CKPT_NAMING="
